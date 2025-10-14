@@ -105,3 +105,27 @@ export function throttle<T extends (...args: any[]) => any>(
     }
   };
 }
+
+// Toast通知（简化版，使用浏览器alert/console，后续可集成专业toast库）
+export const toast = {
+  success: (message: string) => {
+    if (typeof window !== 'undefined') {
+      // 临时使用console，后续可以集成react-hot-toast或其他toast库
+      console.log('✅ Success:', message);
+      // 简单的浏览器通知
+      alert(message);
+    }
+  },
+  error: (message: string) => {
+    if (typeof window !== 'undefined') {
+      console.error('❌ Error:', message);
+      alert(message);
+    }
+  },
+  info: (message: string) => {
+    if (typeof window !== 'undefined') {
+      console.info('ℹ️ Info:', message);
+      alert(message);
+    }
+  },
+};
