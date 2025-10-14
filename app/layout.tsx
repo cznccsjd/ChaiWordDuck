@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "拆词鸭 - ChaiWord Duck",
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="font-sans antialiased">
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );
