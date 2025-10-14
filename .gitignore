@@ -1,6 +1,15 @@
 # ChaiWord Duck Project .gitignore
 
 # ===========================
+# Next.js
+# ===========================
+.next/
+out/
+.next/
+*.next
+.vercel
+
+# ===========================
 # Node.js
 # ===========================
 node_modules/
