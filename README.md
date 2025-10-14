@@ -71,6 +71,83 @@ ac-  +  -commod-  +  -ation
 
 ---
 
+## 📊 前端开发进度
+
+### ✅ 已完成 (2025-10-14)
+
+前端 MVP 核心功能已全部完成，包括：
+
+- ✅ 项目初始化（Next.js 14 + TypeScript + Tailwind CSS）
+- ✅ 用户认证（登录/注册）
+- ✅ 首页和搜索功能
+- ✅ 单词手册详情页（五步学习法）
+- ✅ 收藏功能
+- ✅ 查询次数限制和游客模式
+- ✅ 响应式设计（移动端优先）
+
+详细进度请查看：[前端开发进度报告](./docs/FRONTEND_PROGRESS.md)
+
+---
+
+## 🚀 如何运行项目
+
+### 前端开发环境
+
+#### 1. 安装依赖
+```bash
+npm install
+```
+
+#### 2. 配置环境变量
+创建 `.env.local` 文件：
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+```
+
+#### 3. 启动开发服务器
+```bash
+npm run dev
+```
+
+访问 [http://localhost:3000](http://localhost:3000)
+
+#### 4. 构建生产版本
+```bash
+npm run build
+npm run start
+```
+
+#### 5. 代码检查
+```bash
+# ESLint检查
+npm run lint
+
+# TypeScript类型检查
+npm run type-check
+```
+
+---
+
+## 🛠️ 技术栈
+
+### 前端
+- **框架**: Next.js 14.2.33 (App Router)
+- **语言**: TypeScript 5.x
+- **样式**: Tailwind CSS 3.4.0
+- **状态管理**: Zustand 4.5.0
+- **数据请求**: React Query 5.28.0
+- **表单验证**: Zod 3.22.0
+- **HTTP 客户端**: Axios 1.6.0
+
+### 后端（待开发）
+- **框架**: FastAPI 0.104+
+- **语言**: Python 3.11+
+- **数据库**: PostgreSQL 15+
+- **缓存**: Redis 7+
+- **AI**: OpenAI GPT-3.5-turbo
+
+---
+
 ## 🚀 发展规划
 
 ### 第一阶段：验证（2周）
@@ -79,10 +156,11 @@ ac-  +  -commod-  +  -ation
 - [ ] 收集反馈，验证效果
 
 ### 第二阶段：MVP 开发（3-4周）
-- [ ] Web 应用开发
-  - 用户输入单词 → AI 生成"游戏手册"
-  - 收藏夹功能
-  - 基础复习提醒
+- [x] Web 应用开发（前端已完成）
+  - [x] 用户输入单词 → AI 生成"游戏手册"
+  - [x] 收藏夹功能
+  - [ ] 基础复习提醒（后端待开发）
+- [ ] 后端 API 开发（进行中）
 - [ ] 小范围推广（100-500用户）
 
 ### 第三阶段：完整产品（3-6个月）
