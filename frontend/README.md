@@ -217,40 +217,17 @@ ChaiWordDuck/
 │
 ├── docs/                              # 文档目录
 │   ├── product/                       # 产品文档
-│   │   ├── PRD.md                     # 产品需求文档
 │   │   ├── 01-产品可行性分析.md
 │   │   ├── 02-品牌命名策略分析.md
 │   │   └── 全球成人英語學習平台與長單詞記憶產品市場調研報告.md
 │   │
 │   ├── design/                        # 设计文档
-│   │   └── DESIGN.md                  # UI/UX 设计文档
-│   │
 │   ├── architecture/                  # 架构文档
-│   │   └── ARCHITECTURE.md            # 技术架构文档
-│   │
 │   └── project/                       # 项目管理文档
 │
-├── backend/                           # 后端服务 (FastAPI)
-│   ├── app/                           # 应用代码
-│   │   ├── main.py                    # FastAPI 入口
-│   │   ├── api/                       # API 路由
-│   │   ├── core/                      # 核心模块
-│   │   ├── models/                    # 数据库模型
-│   │   └── schemas/                   # Pydantic 模型
-│   ├── tests/                         # 后端测试
-│   │   ├── unit/                      # 单元测试
-│   │   └── integration/               # 集成测试
-│   ├── alembic/                       # 数据库迁移
-│   ├── pyproject.toml                 # 后端依赖 (pdm)
-│   └── README.md                      # 后端开发指南
-│
-└── frontend/                          # 前端应用 (Next.js)
-    ├── app/                           # Next.js 页面
-    ├── components/                    # React 组件
-    ├── lib/                           # 工具函数
-    ├── types/                         # TypeScript 类型
-    ├── package.json                   # 前端依赖 (npm)
-    └── README.md                      # 前端开发指南
+├── src/                               # 源代码目录
+├── tests/                             # 测试目录
+└── scripts/                           # 脚本目录
 ```
 
 ## 📁 项目文档
@@ -267,11 +244,8 @@ ChaiWordDuck/
 ### 当前状态
 - ✅ 完成产品构思和可行性分析
 - ✅ 完成品牌命名和定位
-- ✅ 完成技术架构设计
-- ✅ 完成用户认证模块开发 (后端)
-- ✅ 完成Landing Page和基础UI (前端)
-- 🔄 进行中：MVP 核心功能开发
-- 📋 待办：单词管理、AI生成、收藏功能
+- 🔄 准备组建开发团队
+- 📋 待办：MVP 开发、内容制作
 
 ### 如何参与
 
@@ -289,7 +263,7 @@ ChaiWordDuck/
 ## 📞 联系方式
 
 **项目发起人**：[待补充]
-**项目地址**：https://github.com/cznccsjd/ChaiWordDuck
+**项目地址**：D:\Documents\workspace\ClaudeCodeProjects\ChaiWordDuck (待重命名)
 
 ---
 
@@ -304,4 +278,4 @@ ChaiWordDuck/
 ---
 
 **项目启动日期**：2025-10-14
-**当前版本**：v0.1.0-alpha (MVP 开发中)
+**当前版本**：v0.1 (概念阶段)
