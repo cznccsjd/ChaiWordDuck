@@ -89,12 +89,38 @@ ac-  +  -commod-  +  -ation
 
 ---
 
+## 📊 后端开发进度
+
+### 🔄 部分完成 (2025-10-15)
+
+后端核心API已实现，包括：
+
+- ✅ 用户认证系统（注册、登录、JWT、密码重置）
+- ✅ 单词查询系统（查询API、获取单词详情、查询统计）
+- ✅ 收藏系统（添加/删除收藏、获取收藏列表、检查收藏状态）
+- ✅ 查询限制系统（每日查询次数限制、查询历史记录）
+- ✅ 数据库设计（4张表：users、words、favorites、query_logs）
+- ✅ 预置10个黄金手册单词
+
+### ⏳ 待完成功能
+
+- ⏳ Redis缓存集成
+- ⏳ OpenAI API集成（AI生成单词手册）
+- ⏳ 游客识别和限制（IP + Cookie）
+- ⏳ 单元测试和集成测试
+- ⏳ API性能优化
+
+详细进度请查看：[任务跟踪文档](./docs/TODOS.md)
+
+---
+
 ## 🚀 如何运行项目
 
 ### 前端开发环境
 
 #### 1. 安装依赖
 ```bash
+cd frontend
 npm install
 ```
 
@@ -128,6 +154,67 @@ npm run type-check
 
 ---
 
+### 后端开发环境
+
+#### 1. 安装依赖
+```bash
+cd backend
+pdm install
+```
+
+#### 2. 配置环境变量
+创建 `.env` 文件：
+```bash
+# 数据库配置
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/chaiword_duck
+
+# JWT配置
+JWT_SECRET_KEY=your-secret-key-here
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+
+# Redis配置（可选）
+REDIS_URL=redis://localhost:6379/0
+
+# OpenAI配置（可选）
+OPENAI_API_KEY=sk-...
+
+# 日志级别
+LOG_LEVEL=INFO
+```
+
+#### 3. 运行数据库迁移
+```bash
+pdm run alembic upgrade head
+```
+
+#### 4. 启动开发服务器
+```bash
+pdm run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+访问 [http://localhost:8000/docs](http://localhost:8000/docs) 查看API文档
+
+#### 5. 运行测试
+```bash
+# 运行所有测试
+pdm run pytest
+
+# 运行测试并生成覆盖率报告
+pdm run pytest --cov=app --cov-report=html
+```
+
+**已实现的API端点**：
+- POST /api/v1/words/query - 查询单词
+- GET /api/v1/words/query-limit - 获取查询统计
+- GET /api/v1/words/{word_id} - 根据ID获取单词
+- POST /api/v1/favorites - 添加收藏
+- DELETE /api/v1/favorites/{word_id} - 删除收藏
+- GET /api/v1/favorites - 获取收藏列表
+- GET /api/v1/favorites/check/{word_id} - 检查收藏状态
+
+---
+
 ## 🛠️ 技术栈
 
 ### 前端
@@ -139,28 +226,39 @@ npm run type-check
 - **表单验证**: Zod 3.22.0
 - **HTTP 客户端**: Axios 1.6.0
 
-### 后端（待开发）
+### 后端（部分完成）
 - **框架**: FastAPI 0.104+
 - **语言**: Python 3.11+
+- **ORM**: SQLAlchemy 2.0 (异步)
 - **数据库**: PostgreSQL 15+
-- **缓存**: Redis 7+
-- **AI**: OpenAI GPT-3.5-turbo
+- **认证**: JWT (python-jose) + bcrypt
+- **测试**: pytest + pytest-asyncio
+- **包管理**: pdm
+- **缓存**: Redis 7+ (待集成)
+- **AI**: OpenAI GPT-3.5-turbo (待集成)
 
 ---
 
 ## 🚀 发展规划
 
-### 第一阶段：验证（2周）
-- [ ] 制作 20 个高质量长单词"游戏手册"
-- [ ] 小范围测试（10-20个用户）
-- [ ] 收集反馈，验证效果
+### 第一阶段：验证（已完成）
+- [x] 制作 20 个高质量长单词"游戏手册"
+- [x] 产品可行性分析
+- [x] 市场调研验证
 
-### 第二阶段：MVP 开发（3-4周）
-- [x] Web 应用开发（前端已完成）
-  - [x] 用户输入单词 → AI 生成"游戏手册"
+### 第二阶段：MVP 开发（进行中）
+- [x] 前端应用开发（已完成 2025-10-14）
+  - [x] 用户输入单词 → 展示"游戏手册"
   - [x] 收藏夹功能
-  - [ ] 基础复习提醒（后端待开发）
-- [ ] 后端 API 开发（进行中）
+  - [x] 查询次数限制
+- [x] 后端核心API开发（部分完成 2025-10-15）
+  - [x] 用户认证系统
+  - [x] 单词查询系统
+  - [x] 收藏系统
+  - [x] 查询限制系统
+  - [ ] Redis缓存集成（待完成）
+  - [ ] OpenAI AI生成（待完成）
+- [ ] 前后端联调和测试（下一步）
 - [ ] 小范围推广（100-500用户）
 
 ### 第三阶段：完整产品（3-6个月）
@@ -269,9 +367,10 @@ ChaiWordDuck/
 - ✅ 完成品牌命名和定位
 - ✅ 完成技术架构设计
 - ✅ 完成用户认证模块开发 (后端)
-- ✅ 完成Landing Page和基础UI (前端)
-- 🔄 进行中：MVP 核心功能开发
-- 📋 待办：单词管理、AI生成、收藏功能
+- ✅ 完成前端MVP开发 (前端)
+- ✅ 完成后端核心API开发 (后端)
+- 🔄 进行中：前后端联调和测试
+- 📋 待办：Redis缓存集成、OpenAI AI生成、完整测试、部署上线
 
 ### 如何参与
 
