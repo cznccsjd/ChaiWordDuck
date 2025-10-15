@@ -65,6 +65,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-yellow-50 to-white flex items-center justify-center px-4">
       <div className="w-full max-w-md">
+        {/* Logo - 可点击返回首页 */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center space-x-2 font-bold text-xl text-gray-900 hover:text-yellow-500 transition-colors group"
+          >
+            <span className="text-2xl">🦆</span>
+            <span>拆词鸭</span>
+          </Link>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             欢迎回来！
