@@ -367,6 +367,273 @@ pdm run alembic upgrade head
 
 ---
 
+## 🚀 生产环境部署
+
+### 部署架构说明
+
+本项目采用前后端分离的部署策略，推荐使用以下免费/低成本的托管服务：
+
+| 组件 | 推荐平台 | 成本 | 说明 |
+|------|---------|------|------|
+| 前端 | Vercel | 免费 | Next.js 官方推荐，支持 SSR/ISR |
+| 后端 | Render.com | $21/月 | 原生支持 Python FastAPI + Docker |
+| 数据库 | Render PostgreSQL | 包含在上述 | 托管 PostgreSQL，自动备份 |
+| 缓存 | Render Redis | 包含在上述 | 托管 Redis，256MB 内存 |
+
+**为什么不用 Supabase？**
+- Supabase Edge Functions 只支持 Deno/TypeScript，不支持 Python
+- 如果用 Supabase，需要完全重写后端（约 3000+ 行代码）
+- Render.com 原生支持 FastAPI，无需任何改写
+- 详细分析请查看架构文档
+
+### 部署到 Render.com（后端）
+
+#### 步骤 1: 准备 Render 账号
+
+1. 注册账号：https://render.com
+2. 连接 GitHub 账号
+3. 选择 ChaiWordDuck 仓库
+
+#### 步骤 2: 创建 Blueprint 部署
+
+项目根目录已提供 `render.yaml` 配置文件，包含：
+- FastAPI Web 服务
+- PostgreSQL 数据库
+- Redis 缓存
+
+**使用 Blueprint 一键部署**：
+
+1. 在 Render 控制台选择 "New" → "Blueprint"
+2. 连接 GitHub 仓库
+3. Render 会自动读取 `render.yaml` 配置
+4. 点击 "Apply" 开始部署
+
+#### 步骤 3: 配置环境变量
+
+以下环境变量需要在 Render 控制台手动设置：
+
+**必需设置**：
+```bash
+# OpenAI API（核心功能）
+OPENAI_API_KEY=sk-your-openai-api-key
+
+# CORS配置（前端域名）
+CORS_ORIGINS=https://your-frontend-domain.vercel.app,https://chaiwordduck.com
+```
+
+**可选设置**：
+```bash
+# SendGrid邮件服务
+SENDGRID_API_KEY=your-sendgrid-api-key
+
+# Sentry错误监控
+SENTRY_DSN=your-sentry-dsn
+```
+
+其他环境变量（DATABASE_URL、REDIS_URL、JWT_SECRET_KEY）会自动生成。
+
+#### 步骤 4: 验证部署
+
+部署完成后，访问以下 URL 验证：
+
+```bash
+# 健康检查
+https://your-app.onrender.com/health
+
+# API 文档
+https://your-app.onrender.com/docs
+
+# 测试查询单词
+curl -X POST https://your-app.onrender.com/api/v1/words/query \
+  -H "Content-Type: application/json" \
+  -d '{"text": "accommodation"}'
+```
+
+#### 成本估算
+
+**MVP 阶段（Starter 计划）**：
+- Web 服务：$7/月（512MB RAM，无冷启动）
+- PostgreSQL：$7/月（1GB 存储）
+- Redis：$7/月（256MB 内存）
+- **总计**：**$21/月（约 ¥150/月）**
+
+**扩展阶段（1000-5000 用户）**：
+- Web 服务：$25/月（更多资源）
+- PostgreSQL Pro：$25/月（10GB 存储）
+- Redis Pro：$25/月（更大缓存）
+- **总计**：**$75/月（约 ¥540/月）**
+
+### 部署到 Vercel（前端）
+
+#### 步骤 1: 准备 Vercel 账号
+
+1. 注册账号：https://vercel.com
+2. 连接 GitHub 账号
+
+#### 步骤 2: 导入项目
+
+1. 在 Vercel 控制台选择 "New Project"
+2. 导入 ChaiWordDuck 仓库
+3. **重要**：设置 Root Directory 为 `frontend`
+4. Framework Preset 会自动识别为 Next.js
+
+#### 步骤 3: 配置环境变量
+
+在 Vercel 项目设置中添加：
+
+```bash
+# 后端 API 地址
+NEXT_PUBLIC_API_URL=https://your-app.onrender.com/api/v1
+```
+
+#### 步骤 4: 部署
+
+1. 点击 "Deploy" 开始首次部署
+2. 等待构建完成（约 2-3 分钟）
+3. 访问 Vercel 提供的预览 URL
+
+#### 步骤 5: 配置自定义域名（可选）
+
+1. 在 Vercel 项目设置中添加域名
+2. 按照提示配置 DNS 记录
+3. Vercel 会自动配置 SSL 证书
+
+#### 成本
+
+- **Hobby 计划**：完全免费
+- 支持 100GB 带宽/月
+- 适合 MVP 阶段使用
+
+### 部署后配置
+
+#### 1. 更新后端 CORS 配置
+
+在 Render 后端环境变量中更新：
+
+```bash
+CORS_ORIGINS=https://your-actual-domain.vercel.app
+```
+
+#### 2. 配置自动备份（推荐）
+
+Render PostgreSQL 每日自动备份，保留 7 天。
+
+**手动备份**：
+```bash
+# 在 Render 控制台执行
+pg_dump $DATABASE_URL > backup.sql
+```
+
+#### 3. 配置监控告警
+
+**Render 内置监控**：
+- CPU/内存使用率
+- 错误日志追踪
+- 自动健康检查
+
+**推荐集成 Sentry**（可选）：
+```bash
+# 在 Render 环境变量中设置
+SENTRY_DSN=your-sentry-dsn
+```
+
+### 持续部署
+
+#### 自动部署流程
+
+```
+开发者 Push 代码到 GitHub
+         ↓
+GitHub 触发 Webhook
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+Render     Vercel
+自动构建    自动构建
+    ↓         ↓
+后端部署    前端部署
+    ↓         ↓
+  完成       完成
+```
+
+#### 部署分支策略
+
+- `main` 分支 → 生产环境自动部署
+- `develop` 分支 → 可配置预览环境
+- 功能分支 → Vercel 自动生成预览 URL
+
+### 部署清单
+
+部署前确认以下事项：
+
+**后端（Render.com）**：
+- [ ] `render.yaml` 配置文件已创建
+- [ ] GitHub 仓库已连接
+- [ ] 环境变量已设置（OPENAI_API_KEY、CORS_ORIGINS）
+- [ ] 健康检查通过（/health 端点）
+- [ ] API 文档可访问（/docs 端点）
+- [ ] 数据库连接正常
+
+**前端（Vercel）**：
+- [ ] Root Directory 设置为 `frontend`
+- [ ] 环境变量已设置（NEXT_PUBLIC_API_URL）
+- [ ] 首次部署成功
+- [ ] 前端可正常访问后端 API
+- [ ] CORS 配置正确
+
+**整体验证**：
+- [ ] 用户注册/登录功能正常
+- [ ] 单词查询功能正常
+- [ ] 收藏功能正常
+- [ ] 查询次数限制生效
+- [ ] 错误日志正常记录
+
+### 常见部署问题
+
+#### 问题 1: Render 构建失败
+
+**错误信息**：`ModuleNotFoundError: No module named 'app'`
+
+**解决方案**：
+```bash
+# 检查 render.yaml 中的 buildCommand
+buildCommand: "pip install pdm && pdm install --prod"
+
+# 确保 pyproject.toml 在正确位置
+```
+
+#### 问题 2: 数据库连接超时
+
+**错误信息**：`asyncpg.exceptions.ConnectionTimeoutError`
+
+**解决方案**：
+1. 检查 DATABASE_URL 环境变量是否正确
+2. 确认数据库服务已启动
+3. 检查网络安全组配置
+
+#### 问题 3: CORS 错误
+
+**错误信息**：`Access-Control-Allow-Origin header is missing`
+
+**解决方案**：
+```bash
+# 在 Render 后端环境变量中设置
+CORS_ORIGINS=https://your-frontend-domain.vercel.app
+
+# 注意：不要包含尾部斜杠
+```
+
+#### 问题 4: Vercel 构建失败
+
+**错误信息**：`MODULE_NOT_FOUND`
+
+**解决方案**：
+1. 检查 Root Directory 是否设置为 `frontend`
+2. 确认 `package.json` 存在于 frontend 目录
+3. 清除 Vercel 构建缓存后重试
+
+---
+
 ### 已实现的API端点
 
 **单词相关**:

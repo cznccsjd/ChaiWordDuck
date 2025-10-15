@@ -1,0 +1,143 @@
+# Render.com 部署配置文件
+# 文档: https://render.com/docs/blueprint-spec
+
+services:
+  # FastAPI 后端服务
+  - type: web
+    name: chaiword-duck-api
+    env: python
+    region: singapore  # 选择亚太区域（新加坡），延迟更低
+    plan: starter  # $7/月，无冷启动，512MB RAM，推荐用于生产环境
+    # plan: free  # 免费计划，15分钟无请求会休眠，仅适合测试
+
+    # 构建配置
+    buildCommand: "pip install pdm && pdm install --prod"
+    startCommand: "pdm run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+    # 健康检查
+    healthCheckPath: /health
+
+    # 环境变量
+    envVars:
+      # 应用配置
+      - key: APP_NAME
+        value: ChaiWord Duck API
+      - key: APP_VERSION
+        value: 0.1.0
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+
+      # 数据库连接（自动从数据库服务获取）
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chaiword-duck-db
+          property: connectionString
+
+      # Redis连接（自动从Redis服务获取）
+      - key: REDIS_URL
+        fromDatabase:
+          name: chaiword-duck-redis
+          property: connectionString
+
+      # JWT密钥（自动生成）
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 10080  # 7天
+
+      # 密码加密配置
+      - key: PASSWORD_BCRYPT_ROUNDS
+        value: 12
+
+      # 限流配置
+      - key: RATE_LIMIT_PER_MINUTE
+        value: 60
+      - key: RATE_LIMIT_PER_HOUR
+        value: 2000
+
+      # CORS配置（需要手动设置为前端域名）
+      - key: CORS_ORIGINS
+        value: https://your-frontend-domain.vercel.app,https://chaiwordduck.com
+      - key: CORS_ALLOW_CREDENTIALS
+        value: true
+
+      # 查询限制
+      - key: GUEST_DAILY_LIMIT
+        value: 1
+      - key: FREE_USER_DAILY_LIMIT
+        value: 3
+      - key: PREMIUM_USER_DAILY_LIMIT
+        value: 999999
+
+      # 收藏限制
+      - key: FREE_USER_FAVORITE_LIMIT
+        value: 10
+      - key: PREMIUM_USER_FAVORITE_LIMIT
+        value: 999999
+
+      # 日志配置
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+
+      # 其他
+      - key: TIMEZONE
+        value: Asia/Shanghai
+
+      # OpenAI API（需要手动设置）
+      - key: OPENAI_API_KEY
+        sync: false  # 不同步到Git，需在Render控制台手动设置
+      - key: OPENAI_MODEL
+        value: gpt-3.5-turbo
+      - key: OPENAI_TEMPERATURE
+        value: 0.7
+      - key: OPENAI_MAX_TOKENS
+        value: 1000
+      - key: OPENAI_TIMEOUT
+        value: 10
+
+      # SendGrid邮件服务（可选，需要手动设置）
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        value: noreply@chaiwordduck.com
+      - key: FROM_NAME
+        value: 拆词鸭
+
+      # Sentry错误监控（可选）
+      - key: SENTRY_DSN
+        sync: false
+
+databases:
+  # PostgreSQL 主数据库
+  - name: chaiword-duck-db
+    plan: starter  # $7/月，1GB存储，适合MVP阶段
+    # plan: free  # 免费计划，90天后过期，仅适合测试
+    databaseName: chaiword_duck
+    user: chaiword_admin
+    region: singapore  # 与Web服务同区域
+
+  # Redis 缓存
+  - name: chaiword-duck-redis
+    plan: starter  # $7/月，256MB内存
+    region: singapore
+    maxmemoryPolicy: allkeys-lru  # 内存满时自动清理最少使用的key
+
+# 总成本估算（Starter计划）:
+# - Web服务: $7/月
+# - PostgreSQL: $7/月
+# - Redis: $7/月
+# 总计: $21/月（约¥150/月）
+
+# 部署说明:
+# 1. 在 Render.com 创建新的 Blueprint
+# 2. 连接 GitHub 仓库
+# 3. 选择 backend/ 目录作为根目录
+# 4. 手动设置敏感环境变量（OPENAI_API_KEY等）
+# 5. 点击 "Deploy" 开始首次部署
+# 6. 部署完成后访问: https://chaiword-duck-api.onrender.com/docs
