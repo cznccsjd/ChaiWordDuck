@@ -218,3 +218,4 @@ site/
 *.rej
 *.diff
 *.patch
+tsconfig.tsbuildinfo
