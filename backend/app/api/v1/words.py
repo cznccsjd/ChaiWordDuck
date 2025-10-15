@@ -120,41 +120,56 @@ def get_user_daily_limit(user: User) -> int:
         return settings.free_user_daily_limit
 
 
-@router.post(
-    "/query",
-    response_model=SuccessResponse[WordQueryResponse],
-    status_code=status.HTTP_200_OK,
-    summary="查询单词",
-    description="查询单词详细信息，包含拆解数据和查询次数限制",
-)
-async def query_word(
-    data: WordQueryRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
-) -> SuccessResponse[WordQueryResponse]:
+async def query_word_internal(
+    word_text: str,
+    current_user: User,
+    db: AsyncSession,
+) -> WordQueryResponse:
     """
-    查询单词
+    单词查询内部逻辑（供GET和POST共享）
 
     Args:
-        data: 查询请求数据
+        word_text: 要查询的单词
         current_user: 当前用户
         db: 数据库会话
 
     Returns:
-        SuccessResponse: 包含单词详细信息和剩余查询次数
+        WordQueryResponse: 单词查询响应数据
 
     Raises:
         HTTPException: 404 单词不存在
         HTTPException: 400 查询次数用尽
     """
+    # 标准化单词（转小写并去除空格）
+    normalized_word = word_text.strip().lower()
+
+    # 验证单词格式
+    if not normalized_word:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": ErrorCode.VALIDATION_ERROR,
+                "message": "单词不能为空",
+            },
+        )
+
+    if not all(c.isalpha() or c in ['-', ' '] for c in normalized_word):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": ErrorCode.VALIDATION_ERROR,
+                "message": "单词只能包含字母、连字符和空格",
+            },
+        )
+
     log_with_context(
-        logger, "info", "Word query attempt", user_id=current_user.id, word=data.word
+        logger, "info", "Word query attempt", user_id=current_user.id, word=normalized_word
     )
 
     # 查询单词
     result = await db.execute(
         select(Word)
-        .where(Word.word == data.word)
+        .where(Word.word == normalized_word)
         .order_by(Word.is_golden.desc())  # 优先返回黄金手册
     )
     word = result.scalar_one_or_none()
@@ -165,7 +180,7 @@ async def query_word(
             "warning",
             "Word not found",
             user_id=current_user.id,
-            word=data.word,
+            word=normalized_word,
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -234,7 +249,7 @@ async def query_word(
     )
 
     # 构造响应
-    response_data = WordQueryResponse(
+    return WordQueryResponse(
         id=word.id,
         word=word.word,
         phonetic=word.phonetic,
@@ -250,6 +265,66 @@ async def query_word(
         remaining_queries=remaining_queries,
     )
 
+
+@router.get(
+    "/query/{word}",
+    response_model=SuccessResponse[WordQueryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="查询单词（GET路径参数）",
+    description="通过URL路径参数查询单词，适用于浏览器和简单HTTP客户端",
+)
+async def query_word_by_path(
+    word: str,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessResponse[WordQueryResponse]:
+    """
+    查询单词（GET方式）
+
+    Args:
+        word: 要查询的单词（路径参数）
+        current_user: 当前用户
+        db: 数据库会话
+
+    Returns:
+        SuccessResponse: 包含单词详细信息和剩余查询次数
+
+    Raises:
+        HTTPException: 404 单词不存在
+        HTTPException: 400 查询次数用尽
+    """
+    response_data = await query_word_internal(word, current_user, db)
+    return SuccessResponse(data=response_data)
+
+
+@router.post(
+    "/query",
+    response_model=SuccessResponse[WordQueryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="查询单词（POST JSON）",
+    description="通过POST JSON body查询单词详细信息，包含拆解数据和查询次数限制",
+)
+async def query_word(
+    data: WordQueryRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> SuccessResponse[WordQueryResponse]:
+    """
+    查询单词（POST方式）
+
+    Args:
+        data: 查询请求数据
+        current_user: 当前用户
+        db: 数据库会话
+
+    Returns:
+        SuccessResponse: 包含单词详细信息和剩余查询次数
+
+    Raises:
+        HTTPException: 404 单词不存在
+        HTTPException: 400 查询次数用尽
+    """
+    response_data = await query_word_internal(data.word, current_user, db)
     return SuccessResponse(data=response_data)
 
 
