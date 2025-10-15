@@ -4,9 +4,15 @@
 导出所有数据库模型
 """
 from app.models.user import User, GuestSession, PasswordResetToken
+from app.models.word import Word
+from app.models.favorite import Favorite
+from app.models.query_log import QueryLog
 
 __all__ = [
     "User",
     "GuestSession",
     "PasswordResetToken",
+    "Word",
+    "Favorite",
+    "QueryLog",
 ]
