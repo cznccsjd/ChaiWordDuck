@@ -31,7 +31,9 @@
       "Bash(mv:*)",
       "Bash(source:*)",
       "Bash(sh:*)",
-      "Bash(PYTHONPATH:*)"
+      "Bash(PYTHONPATH:*)",
+      "Read(//d/Documents/workspace/ClaudeCodeProjects/ChaiWordDuck-backend/**)",
+      "Read(//d/Documents/workspace/ClaudeCodeProjects/ChaiWordDuck-frontend/**)"
     ],
     "deny": [],
     "ask": []
