@@ -1,6 +1,15 @@
 # ChaiWord Duck Project .gitignore
 
 # ===========================
+# Next.js
+# ===========================
+.next/
+out/
+.next/
+*.next
+.vercel
+
+# ===========================
 # Node.js
 # ===========================
 node_modules/
@@ -37,7 +46,7 @@ jspm_packages/
 .env.*.local
 
 # ===========================
-# Python
+# Python (backend only, not frontend lib/)
 # ===========================
 __pycache__/
 *.py[cod]
@@ -59,8 +68,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# lib/    # Commented out - we use lib/ for frontend code
+# lib64/  # Commented out - we use lib/ for frontend code
 parts/
 sdist/
 var/
@@ -209,3 +218,4 @@ site/
 *.rej
 *.diff
 *.patch
+tsconfig.tsbuildinfo
