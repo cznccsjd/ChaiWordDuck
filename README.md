@@ -91,24 +91,36 @@ ac-  +  -commod-  +  -ation
 
 ## 📊 后端开发进度
 
-### 🔄 部分完成 (2025-10-15)
+### ✅ 已完成 (2025-10-15)
 
-后端核心API已实现，包括：
+后端核心API和基础设施已实现，包括：
 
+**核心功能**:
 - ✅ 用户认证系统（注册、登录、JWT、密码重置）
 - ✅ 单词查询系统（查询API、获取单词详情、查询统计）
 - ✅ 收藏系统（添加/删除收藏、获取收藏列表、检查收藏状态）
 - ✅ 查询限制系统（每日查询次数限制、查询历史记录）
-- ✅ 数据库设计（4张表：users、words、favorites、query_logs）
+
+**数据库架构**:
+- ✅ PostgreSQL 数据库设计（4张表：users、words、favorites、query_logs）
+- ✅ Docker Compose 统一环境（PostgreSQL + Redis + 测试数据库）
+- ✅ Alembic 数据库迁移工具
+- ✅ SQLAlchemy 异步ORM
 - ✅ 预置10个黄金手册单词
+
+**测试架构**:
+- ✅ 单元测试框架（SQLite内存数据库）
+- ✅ 集成测试框架（PostgreSQL测试数据库）
+- ✅ 测试数据隔离机制
+- ✅ pytest + pytest-asyncio 配置
 
 ### ⏳ 待完成功能
 
-- ⏳ Redis缓存集成
+- ⏳ Redis缓存集成（已配置Docker服务，待实现缓存逻辑）
 - ⏳ OpenAI API集成（AI生成单词手册）
 - ⏳ 游客识别和限制（IP + Cookie）
-- ⏳ 单元测试和集成测试
-- ⏳ API性能优化
+- ⏳ 完整的单元测试和集成测试覆盖
+- ⏳ API性能优化和监控
 
 详细进度请查看：[任务跟踪文档](./docs/TODOS.md)
 
@@ -116,102 +128,263 @@ ac-  +  -commod-  +  -ation
 
 ## 🚀 如何运行项目
 
-### 前端开发环境
+### 开发环境要求
 
-#### 1. 安装依赖
+- Node.js 18+ (前端)
+- Python 3.12+ (后端)
+- **PDM** (Python依赖管理) - **强制使用，不使用 pip** - [安装指南](https://pdm-project.org/)
+- Docker Desktop (数据库和缓存)
+- Git
+
+### 快速开始
+
+#### 1. 克隆项目
+
+```bash
+git clone https://github.com/cznccsjd/ChaiWordDuck.git
+cd ChaiWordDuck
+```
+
+#### 2. 启动 Docker 服务
+
+```bash
+# 启动 PostgreSQL + Redis + 测试数据库
+docker-compose up -d
+
+# 验证容器运行状态
+docker-compose ps
+```
+
+#### 3. 配置后端环境
+
+```bash
+cd backend
+
+# 复制环境变量文件
+cp .env.example .env
+
+# 安装依赖（使用 PDM，不要使用 pip！）
+pdm install
+
+# ⚠️ 注意：不要使用 pip install -r requirements.txt
+# ⚠️ 项目使用 PDM 管理依赖，请使用上述 pdm install 命令
+
+# (可选) 运行数据库迁移
+# 注意: 如果遇到编码问题，应用启动时会自动创建表结构
+pdm run alembic upgrade head
+```
+
+#### 4. 配置前端环境
+
 ```bash
 cd frontend
+
+# 安装依赖
 npm install
+
+# 创建环境变量文件
+# 创建 .env.local 文件，内容如下:
+# NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-#### 2. 配置环境变量
-创建 `.env.local` 文件：
-```
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-```
+#### 5. 启动开发服务器
 
-#### 3. 启动开发服务器
+在两个独立的终端窗口中：
+
 ```bash
+# 终端1: 启动后端
+cd backend
+pdm run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+```bash
+# 终端2: 启动前端
+cd frontend
 npm run dev
 ```
 
-访问 [http://localhost:3000](http://localhost:3000)
+#### 6. 访问应用
 
-#### 4. 构建生产版本
+- 前端应用: http://localhost:3001
+- 后端API文档: http://localhost:8000/docs
+- 后端API: http://localhost:8000
+
+---
+
+### Docker Compose 使用
+
+#### 服务说明
+
+项目使用 Docker Compose 提供统一的数据库和缓存环境：
+
+| 服务 | 容器名 | 端口 | 说明 |
+|------|--------|------|------|
+| PostgreSQL | chaiword_db | 5432 | 开发数据库 |
+| Redis | chaiword_redis | 6379 | 缓存服务 |
+| PostgreSQL测试 | chaiword_db_test | 5433 | 集成测试专用 |
+
+#### 常用命令
+
 ```bash
-npm run build
-npm run start
+# 启动所有服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看服务日志
+docker-compose logs -f db
+
+# 停止所有服务
+docker-compose down
+
+# 停止并删除所有数据 (慎用！)
+docker-compose down -v
+
+# 重启服务
+docker-compose restart db
 ```
 
-#### 5. 代码检查
-```bash
-# ESLint检查
-npm run lint
+#### 数据持久化
 
-# TypeScript类型检查
-npm run type-check
+- PostgreSQL 数据存储在 Docker volume: `postgres_data`
+- Redis 数据存储在 Docker volume: `redis_data`
+- 测试数据库使用内存存储 (tmpfs)，测试结束后自动清除
+
+---
+
+### 开发工作流
+
+#### 日常开发
+
+```bash
+# 1. 确保 Docker 服务运行
+docker-compose ps
+
+# 2. 启动后端 (开发模式，自动重载)
+cd backend
+pdm run uvicorn app.main:app --reload
+
+# 3. 启动前端 (开发模式，自动重载)
+cd frontend
+npm run dev
+```
+
+#### 运行测试
+
+```bash
+# 后端测试
+cd backend
+
+# 运行所有测试
+pdm run pytest
+
+# 运行单元测试 (使用SQLite内存数据库)
+pdm run pytest -m unit
+
+# 运行集成测试 (使用PostgreSQL测试数据库)
+pdm run pytest -m integration
+
+# 生成测试覆盖率报告
+pdm run pytest --cov=app --cov-report=html
+```
+
+#### 数据库操作
+
+```bash
+# 创建新的迁移文件
+cd backend
+pdm run alembic revision --autogenerate -m "描述变更内容"
+
+# 应用迁移
+pdm run alembic upgrade head
+
+# 回滚迁移
+pdm run alembic downgrade -1
+
+# 查看迁移历史
+pdm run alembic history
 ```
 
 ---
 
-### 后端开发环境
+### 故障排查
 
-#### 1. 安装依赖
+#### Docker 相关问题
+
+**问题: docker-compose 命令失败**
 ```bash
-cd backend
-pdm install
+# 解决方案: 确保 Docker Desktop 正在运行
+# Windows: 启动 Docker Desktop 应用
+# Mac/Linux: 检查 Docker 服务状态
+docker ps
 ```
 
-#### 2. 配置环境变量
-创建 `.env` 文件：
+**问题: 端口被占用**
 ```bash
-# 数据库配置
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/chaiword_duck
+# Windows: 查看端口占用
+netstat -ano | findstr :5432
+netstat -ano | findstr :8000
 
-# JWT配置
-JWT_SECRET_KEY=your-secret-key-here
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_MINUTES=1440
-
-# Redis配置（可选）
-REDIS_URL=redis://localhost:6379/0
-
-# OpenAI配置（可选）
-OPENAI_API_KEY=sk-...
-
-# 日志级别
-LOG_LEVEL=INFO
+# 停止占用端口的进程或更改配置
 ```
 
-#### 3. 运行数据库迁移
+#### 数据库连接问题
+
+**问题: 后端无法连接数据库**
 ```bash
+# 1. 检查 Docker 容器状态
+docker-compose ps
+
+# 2. 查看数据库日志
+docker-compose logs db
+
+# 3. 验证数据库连接
+docker exec -it chaiword_db psql -U postgres -d chaiword_duck
+```
+
+#### 前端问题
+
+**问题: 前端运行在 3001 端口而非 3000**
+- 这是正常的，Next.js 会自动选择可用端口
+- 确保在 `backend/.env` 中的 CORS 配置包含 3001 端口:
+  ```
+  CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+  ```
+
+#### Alembic 编码问题 (Windows)
+
+**问题: alembic upgrade head 报编码错误**
+- 这是 Windows 系统编码问题
+- **临时解决方案**: 应用启动时会自动创建表结构
+- **长期解决方案**: 确保所有 Python 文件使用 UTF-8 编码
+
+```bash
+# 设置环境变量
+set PYTHONUTF8=1
 pdm run alembic upgrade head
 ```
 
-#### 4. 启动开发服务器
-```bash
-pdm run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+---
 
-访问 [http://localhost:8000/docs](http://localhost:8000/docs) 查看API文档
+### 已实现的API端点
 
-#### 5. 运行测试
-```bash
-# 运行所有测试
-pdm run pytest
-
-# 运行测试并生成覆盖率报告
-pdm run pytest --cov=app --cov-report=html
-```
-
-**已实现的API端点**：
+**单词相关**:
 - POST /api/v1/words/query - 查询单词
 - GET /api/v1/words/query-limit - 获取查询统计
 - GET /api/v1/words/{word_id} - 根据ID获取单词
+
+**收藏相关**:
 - POST /api/v1/favorites - 添加收藏
 - DELETE /api/v1/favorites/{word_id} - 删除收藏
 - GET /api/v1/favorites - 获取收藏列表
 - GET /api/v1/favorites/check/{word_id} - 检查收藏状态
+
+**用户认证**:
+- POST /api/v1/auth/register - 用户注册
+- POST /api/v1/auth/login - 用户登录
+- POST /api/v1/auth/refresh - 刷新令牌
+- POST /api/v1/auth/logout - 用户登出
 
 ---
 
@@ -226,16 +399,27 @@ pdm run pytest --cov=app --cov-report=html
 - **表单验证**: Zod 3.22.0
 - **HTTP 客户端**: Axios 1.6.0
 
-### 后端（部分完成）
+### 后端
 - **框架**: FastAPI 0.104+
-- **语言**: Python 3.11+
+- **语言**: Python 3.12+
 - **ORM**: SQLAlchemy 2.0 (异步)
-- **数据库**: PostgreSQL 15+
+- **数据库**:
+  - 生产/开发: PostgreSQL 15+ (Docker)
+  - 单元测试: SQLite (内存模式)
+  - 集成测试: PostgreSQL (Docker, 独立测试库)
+- **缓存**: Redis 7+ (Docker)
 - **认证**: JWT (python-jose) + bcrypt
 - **测试**: pytest + pytest-asyncio
-- **包管理**: pdm
-- **缓存**: Redis 7+ (待集成)
+- **包管理**: PDM
+- **数据库迁移**: Alembic
 - **AI**: OpenAI GPT-3.5-turbo (待集成)
+
+### 基础设施
+- **容器化**: Docker + Docker Compose
+- **数据库**: PostgreSQL 15 Alpine (生产 + 测试环境)
+- **缓存**: Redis 7 Alpine
+- **数据持久化**: Docker Volumes
+- **测试隔离**: 独立测试数据库 (端口5433)
 
 ---
 

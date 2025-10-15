@@ -133,6 +133,218 @@ release/<version>: 预发布分支，如 release/v1.0.0
 
 ---
 
+## 📦 包管理工具规范
+
+### 核心原则
+
+**统一工具，锁定版本，禁止混用**
+
+### Python 后端包管理规范
+
+#### ✅ 强制使用：PDM
+
+**官方文档**: https://pdm-project.org/
+
+**为什么使用 PDM？**
+1. **符合 PEP 标准**: 使用 pyproject.toml（PEP 621），不依赖 setup.py
+2. **快速**: 比 pip 更快的依赖解析和安装速度
+3. **确定性**: pdm.lock 锁定所有传递依赖的精确版本
+4. **隔离性**: 使用 __pypackages__ 或 .venv，不污染全局环境
+5. **现代化**: 原生支持 Python 3.7+，支持 PEP 582
+
+#### 常用命令
+
+```bash
+# 安装项目依赖（生产 + 开发）
+pdm install
+
+# 只安装生产依赖
+pdm install --prod
+
+# 添加生产依赖
+pdm add <package>
+
+# 添加开发依赖
+pdm add -d <package>
+
+# 更新依赖
+pdm update <package>
+
+# 运行命令（使用项目环境）
+pdm run <command>
+
+# 运行 Python 脚本
+pdm run python <script.py>
+
+# 启动后端服务器
+pdm run uvicorn app.main:app --reload
+
+# 运行测试
+pdm run pytest
+
+# 导出 requirements.txt（仅用于 Docker 构建）
+pdm export -f requirements --without-hashes --prod -o requirements.txt
+```
+
+#### ❌ 禁止使用（除特定场景）
+
+**禁止**: `pip install <package>`（直接安装项目依赖）
+**禁止**: `pip freeze > requirements.txt`
+**禁止**: `poetry`, `pipenv`, `conda`（保持工具统一）
+
+#### ⚠️ 例外场景（允许使用 pip）
+
+以下场景可以使用 pip：
+
+1. **安装 PDM 本身**（在全局环境或 Docker 构建阶段）:
+   ```bash
+   pip install --no-cache-dir pdm
+   ```
+
+2. **Docker 生产镜像**（使用 PDM 导出的 requirements.txt）:
+   ```dockerfile
+   # Build stage: 使用 PDM 导出依赖
+   RUN pdm export -f requirements --without-hashes --prod -o requirements.txt
+
+   # Production stage: 使用 pip 安装（避免在生产镜像中包含 PDM）
+   RUN pip install --no-cache-dir -r requirements.txt
+   ```
+
+3. **临时调试工具**（仅在本地调试，不提交）:
+   ```bash
+   pip install ipdb  # 临时调试，不要添加到 pyproject.toml
+   ```
+
+#### 📋 开发工作流
+
+```bash
+# 1. 克隆项目后首次安装
+cd backend
+pdm install
+
+# 2. 添加新依赖
+pdm add fastapi-limiter  # 生产依赖
+pdm add -d pytest-mock   # 开发依赖
+
+# 3. 更新依赖
+pdm update fastapi
+
+# 4. 运行项目
+pdm run uvicorn app.main:app --reload
+
+# 5. 运行测试
+pdm run pytest
+
+# 6. 提交代码（确保提交 pdm.lock）
+git add pyproject.toml pdm.lock
+git commit -m "chore(backend): add fastapi-limiter dependency"
+```
+
+#### 🚫 常见错误及纠正
+
+| ❌ 错误做法 | ✅ 正确做法 | 原因 |
+|------------|------------|------|
+| `pip install fastapi` | `pdm add fastapi` | 使用 PDM 管理依赖 |
+| `pip freeze > requirements.txt` | `pdm export -o requirements.txt` | PDM 导出版本更准确 |
+| 手动编辑 `pdm.lock` | `pdm update` | pdm.lock 由 PDM 自动生成 |
+| 提交 `.venv/` 目录 | 在 .gitignore 中忽略 | 虚拟环境不应提交 |
+| 使用 `python -m pytest` | `pdm run pytest` | 确保使用项目环境 |
+
+### 前端包管理规范
+
+#### ✅ 强制使用：npm
+
+**版本要求**: npm 9+ (Node.js 18+ 自带)
+
+#### 常用命令
+
+```bash
+# 安装依赖
+npm install
+
+# 添加生产依赖
+npm install <package>
+
+# 添加开发依赖
+npm install -D <package>
+
+# 运行开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 运行代码检查
+npm run lint
+```
+
+#### ❌ 禁止使用（保持一致性）
+
+**禁止**: `yarn`（除非有特殊原因并经过团队讨论）
+**禁止**: `pnpm`（除非项目明确迁移）
+
+### 包管理工具检查清单
+
+#### 代码审查时必须检查：
+
+```
+□ 后端依赖添加是否使用 `pdm add`？
+□ 前端依赖添加是否使用 `npm install`？
+□ 是否提交了 pdm.lock 和 package-lock.json？
+□ 是否有误提交的 requirements.txt（非 Docker 用途）？
+□ Dockerfile 是否正确使用 PDM 导出 + pip 安装？
+□ 文档中的安装命令是否使用正确的工具？
+□ CI/CD 配置是否使用正确的包管理工具？
+```
+
+#### 文档编写时必须检查：
+
+```
+□ 所有 Python 安装命令是否使用 `pdm add` 而非 `pip install`？
+□ 所有 Python 运行命令是否使用 `pdm run` 前缀？
+□ Dockerfile 示例是否遵循"PDM 导出 + pip 安装"模式？
+□ CI/CD 示例是否使用 PDM 命令？
+□ README.md 的快速开始是否使用正确的工具？
+```
+
+### Sub Agents 行为规范
+
+#### 后端开发专家 (backend-engineer)
+- ✅ 添加依赖时必须使用 `pdm add`
+- ✅ 运行测试时必须使用 `pdm run pytest`
+- ❌ 不得使用 `pip install`（除 Docker 场景）
+
+#### 前端开发专家 (frontend-engineer)
+- ✅ 添加依赖时必须使用 `npm install <package>`
+- ❌ 不得使用 `yarn` 或 `pnpm`（除非明确讨论决定）
+
+#### 架构师 (architect)
+- ✅ 编写架构文档时必须使用正确的包管理工具命令
+- ✅ Dockerfile 示例必须遵循最佳实践
+- ✅ CI/CD 配置必须使用项目标准工具
+
+#### 项目助理 (project-coordinator)
+- ✅ 审查所有文档的包管理工具命令一致性
+- ✅ 确保 README.md 和其他文档同步
+- ✅ 维护 .gitignore 正确忽略工具生成的文件
+
+#### 测试专家 (qa-testing-expert)
+- ✅ 运行测试时必须使用 `pdm run pytest`（后端）
+- ✅ 测试文档中的命令必须使用正确的工具
+
+### 违规处理
+
+如果发现违反包管理工具规范的情况：
+
+1. **立即停止**: 停止使用错误的工具
+2. **清理环境**: 删除错误工具安装的依赖
+3. **重新安装**: 使用正确的工具重新安装
+4. **更新文档**: 如果文档有误，必须同步更新
+5. **审查历史**: 检查是否有其他地方存在类似问题
+6. **记录教训**: 在项目文档中记录错误案例
+
+---
+
 ## 📚 文档驱动开发规范
 
 ### 1. 文档优先原则
