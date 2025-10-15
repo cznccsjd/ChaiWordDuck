@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { getWordById } from '@/lib/api/words';
 import { addFavorite, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store/auth';
-import { toast } from '@/lib/utils';
+import { useToast } from '@/components/ui';
 import type { WordManual } from '@/types';
 
 interface WordDetailPageProps {
@@ -18,43 +18,44 @@ interface WordDetailPageProps {
 export default function WordDetailPage({ params }: WordDetailPageProps) {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { showToast } = useToast();
   const [word, setWord] = useState<WordManual | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isFavoriting, setIsFavoriting] = useState(false);
 
   useEffect(() => {
-    loadWord();
-  }, [params.id]);
+    const loadWord = async () => {
+      setIsLoading(true);
+      try {
+        const wordId = parseInt(params.id);
+        if (isNaN(wordId)) {
+          showToast('无效的单词ID', 'error');
+          router.push('/');
+          return;
+        }
 
-  const loadWord = async () => {
-    setIsLoading(true);
-    try {
-      const wordId = parseInt(params.id);
-      if (isNaN(wordId)) {
-        toast.error('无效的单词ID');
+        const wordData = await getWordById(wordId);
+        setWord(wordData);
+
+        // TODO: 从API获取是否已收藏
+        // 暂时设为false
+        setIsFavorited(false);
+      } catch (error) {
+        console.error('Failed to load word:', error);
+        showToast('加载单词失败，请稍后重试', 'error');
         router.push('/');
-        return;
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      const wordData = await getWordById(wordId);
-      setWord(wordData);
-
-      // TODO: 从API获取是否已收藏
-      // 暂时设为false
-      setIsFavorited(false);
-    } catch (error) {
-      console.error('Failed to load word:', error);
-      toast.error('加载单词失败，请稍后重试');
-      router.push('/');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    loadWord();
+  }, [params.id, router, showToast]);
 
   const handleFavorite = async () => {
     if (!user) {
-      toast.info('请先登录');
+      showToast('请先登录', 'info');
       router.push('/login');
       return;
     }
@@ -65,18 +66,22 @@ export default function WordDetailPage({ params }: WordDetailPageProps) {
     try {
       if (isFavorited) {
         // 取消收藏
-        await removeFavorite(word.id);
-        setIsFavorited(false);
-        toast.success('已取消收藏');
+        // TODO: removeFavorite需要favoriteId，但当前只有word.id
+        // 需要后端提供以下任一方案:
+        // 1. 添加 DELETE /favorites/by-word/{wordId} 端点
+        // 2. checkFavorite返回 { is_favorited: boolean, favorite_id: number | null }
+        // 临时方案: 引导用户从收藏页删除
+        showToast('请从"我的收藏"页面取消收藏', 'info');
+        return;
       } else {
         // 添加收藏
         await addFavorite(word.id);
         setIsFavorited(true);
-        toast.success('已收藏');
+        showToast('已收藏', 'success');
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
-      toast.error(isFavorited ? '取消收藏失败' : '收藏失败');
+      showToast(isFavorited ? '取消收藏失败' : '收藏失败', 'error');
     } finally {
       setIsFavoriting(false);
     }

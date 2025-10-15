@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { toast } from '@/lib/utils';
+import { useToast } from '@/components/ui';
 import { queryWord } from '@/lib/api/words';
 
 interface SearchBoxProps {
@@ -20,6 +20,7 @@ export function SearchBox({
   onSearch,
 }: SearchBoxProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [word, setWord] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -29,25 +30,25 @@ export function SearchBox({
     // 验证输入
     const trimmedWord = word.trim().toLowerCase();
     if (!trimmedWord) {
-      toast.error('请输入单词');
+      showToast('请输入单词', 'error');
       return;
     }
 
     // 只允许英文字母
     if (!/^[a-zA-Z]+$/.test(trimmedWord)) {
-      toast.error('请输入英文单词（仅支持字母）');
+      showToast('请输入英文单词（仅支持字母）', 'error');
       return;
     }
 
     // 检查是否有剩余次数
     if (remainingQueries <= 0) {
       if (isGuest) {
-        toast.error('今日体验次数已用完，注册可获得3次/天');
+        showToast('今日体验次数已用完，注册可获得3次/天', 'error');
         setTimeout(() => {
           router.push('/register');
         }, 1500);
       } else {
-        toast.error('今日查询次数已用完，明天再来或升级高级版');
+        showToast('今日查询次数已用完，明天再来或升级高级版', 'error');
       }
       return;
     }
@@ -64,15 +65,9 @@ export function SearchBox({
       router.push(`/word/${wordData.id}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '查询失败，请稍后重试';
-      toast.error(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setIsSearching(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch(e as any);
     }
   };
 
@@ -83,7 +78,6 @@ export function SearchBox({
           type="text"
           value={word}
           onChange={(e) => setWord(e.target.value)}
-          onKeyPress={handleKeyPress}
           placeholder="输入要学习的单词..."
           disabled={isSearching}
           className="flex-1 px-4 py-3 sm:py-4 border-2 border-gray-200 rounded-lg focus:border-yellow-400 focus:outline-none transition-colors text-base sm:text-lg disabled:bg-gray-50 disabled:cursor-not-allowed"

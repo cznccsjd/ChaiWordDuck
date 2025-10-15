@@ -6,48 +6,53 @@ import Link from 'next/link';
 import { Navbar } from '@/components/layout/Navbar';
 import { getFavorites, removeFavorite } from '@/lib/api/favorites';
 import { useAuthStore } from '@/lib/store/auth';
-import { toast, formatDate } from '@/lib/utils';
+import { useToast, formatDate } from '@/lib/utils';
 import type { Favorite } from '@/types';
 
 export default function FavoritesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { showToast } = useToast();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // 登录检查
   useEffect(() => {
-    // 检查登录状态
     if (!user) {
-      toast.info('请先登录');
+      showToast('请先登录', 'info');
       router.push('/login');
-      return;
     }
+  }, [user, router, showToast]);
+
+  // 数据加载
+  useEffect(() => {
+    if (!user) return;
+
+    const loadFavorites = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getFavorites();
+        setFavorites(data);
+      } catch (error) {
+        console.error('Failed to load favorites:', error);
+        showToast('加载收藏失败', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
     loadFavorites();
-  }, [user]);
+  }, [user, showToast]);
 
-  const loadFavorites = async () => {
-    setIsLoading(true);
+  const handleRemoveFavorite = async (favoriteId: number) => {
     try {
-      const data = await getFavorites();
-      setFavorites(data);
-    } catch (error) {
-      console.error('Failed to load favorites:', error);
-      toast.error('加载收藏失败');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRemoveFavorite = async (wordId: number) => {
-    try {
-      await removeFavorite(wordId);
-      setFavorites(favorites.filter((fav) => fav.word_id !== wordId));
-      toast.success('已取消收藏');
+      await removeFavorite(favoriteId);
+      setFavorites(favorites.filter((fav) => fav.id !== favoriteId));
+      showToast('已取消收藏', 'success');
     } catch (error) {
       console.error('Failed to remove favorite:', error);
-      toast.error('取消收藏失败');
+      showToast('取消收藏失败', 'error');
     }
   };
 
@@ -162,7 +167,7 @@ export default function FavoritesPage() {
                         </button>
                       </Link>
                       <button
-                        onClick={() => handleRemoveFavorite(favorite.word_id)}
+                        onClick={() => handleRemoveFavorite(favorite.id)}
                         className="px-4 py-2 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 font-medium rounded-lg transition-colors text-sm flex items-center justify-center gap-1"
                         title="取消收藏"
                       >

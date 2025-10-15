@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/lib/store/auth';
 import { getQueryLimit } from '@/lib/api/words';
 import type { QueryLimit } from '@/types';
@@ -89,7 +89,7 @@ export function useQueryLimit() {
   const [isLoading, setIsLoading] = useState(true);
 
   // 加载查询限制
-  const loadQueryLimit = async () => {
+  const loadQueryLimit = useCallback(async () => {
     setIsLoading(true);
     try {
       if (user) {
@@ -120,7 +120,7 @@ export function useQueryLimit() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]); // user是唯一的外部依赖
 
   // 检查单词是否已查询过
   const hasQueriedWord = (word: string): boolean => {
@@ -165,7 +165,7 @@ export function useQueryLimit() {
   // 初始化和监听用户登录状态变化
   useEffect(() => {
     loadQueryLimit();
-  }, [user]);
+  }, [loadQueryLimit]); // 完整的依赖
 
   return {
     ...queryLimit,
