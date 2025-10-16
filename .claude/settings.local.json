@@ -32,7 +32,10 @@
       "Bash(source:*)",
       "Bash(sh:*)",
       "Bash(PYTHONPATH:*)",
-      "Read(//d/Documents/workspace/ClaudeCodeProjects/ChaiWordDuck/**)"
+      "Read(//d/Documents/workspace/ClaudeCodeProjects/ChaiWordDuck/**)",
+      "Bash(pdm run alembic:*)",
+      "Bash(pdm run python:*)",
+      "Bash(PGPASSWORD=password psql:*)"
     ],
     "deny": [],
     "ask": []
