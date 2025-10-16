@@ -31,10 +31,10 @@ class AIGenerationService:
 
         # 确定限额
         if current_user:
-            limit = settings.AI_GENERATION_LIMIT_USER
+            limit = settings.ai_generation_limit_user
             user_id = current_user.id
         else:
-            limit = settings.AI_GENERATION_LIMIT_GUEST
+            limit = settings.ai_generation_limit_guest
             user_id = None
 
         # 获取IP

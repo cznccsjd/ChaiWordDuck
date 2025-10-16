@@ -19,15 +19,15 @@ class AIServiceFactory:
         if cls._instance is None:
             settings = get_settings()
 
-            if settings.AI_PROVIDER == "openai":
+            if settings.ai_provider == "openai":
                 logger.info("Initializing OpenAI service")
                 cls._instance = OpenAIService(
-                    api_key=settings.OPENAI_API_KEY,
-                    model=settings.OPENAI_MODEL,
-                    timeout=settings.OPENAI_TIMEOUT
+                    api_key=settings.openai_api_key,
+                    model=settings.openai_model,
+                    timeout=settings.openai_timeout
                 )
             else:
-                raise ValueError(f"Unsupported AI provider: {settings.AI_PROVIDER}")
+                raise ValueError(f"Unsupported AI provider: {settings.ai_provider}")
 
         return cls._instance
 
