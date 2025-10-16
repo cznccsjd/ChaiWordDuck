@@ -71,6 +71,10 @@ class GeminiService(AIServiceBase):
             logger.info(f"Gemini successfully generated for: {word}")
             return word_data
 
+        except AIParseError:
+            # Re-raise parse errors without wrapping
+            raise
+
         except google_exceptions.DeadlineExceeded as e:
             logger.error(f"Gemini timeout for {word}: {e}")
             raise AITimeoutError(f"Gemini生成超时: {str(e)}")

@@ -18,8 +18,20 @@ class OpenAIService(AIServiceBase):
     """OpenAI服务实现"""
 
     def __init__(self, api_key: str, model: str, timeout: int):
+        """
+        初始化OpenAI服务
+
+        Args:
+            api_key: OpenAI API密钥
+            model: 模型名称（如gpt-4o-mini）
+            timeout: 请求超时时间（秒）
+        """
+        if not api_key or api_key == "sk-your-openai-api-key-optional":
+            raise AIServiceError("OpenAI API Key未配置或无效")
+
         self.client = AsyncOpenAI(api_key=api_key, timeout=timeout)
         self.model = model
+        logger.info(f"OpenAI service initialized with model: {model}")
 
     async def generate_word_manual(self, word: str) -> WordManualData:
         """生成单词学习手册"""
