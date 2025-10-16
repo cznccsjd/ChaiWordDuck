@@ -206,68 +206,131 @@ pdm run alembic current  # 应显示: 004_guest_query_logs (head)
 curl http://localhost:8000/api/v1/words/query/accommodation
 ```
 
-### 2. AI服务配置（可选，用于AI生成单词）
+### 2. AI服务配置（多提供商架构）
 
 **背景**: 当查询数据库中不存在的单词时，系统会调用AI服务实时生成单词学习手册。
 
+系统支持多AI提供商主备架构，提供高可用性和成本优化：
+
+**架构设计**:
+- **主提供商**（默认Gemini）：成本低（$0.001-0.005/次）、速度快
+- **备用提供商**（默认OpenAI）：主服务失败时自动切换
+- **自动切换**：主服务初始化失败时无感知切换到备用服务
+
 **配置步骤**:
 
-1. **获取OpenAI API Key**:
+1. **获取API Key**:
+
+   **Gemini (推荐):**
+   - 访问 https://aistudio.google.com/apikey
+   - 创建新API Key
+   - 复制API Key
+
+   **OpenAI (备用):**
    - 访问 https://platform.openai.com/api-keys
    - 创建新的API Key
    - 复制API Key（格式：`sk-proj-...`）
 
 2. **配置环境变量**:
 
-   编辑 `backend/.env` 文件，添加：
+   编辑 `backend/.env` 文件：
 
    ```bash
-   # AI服务选择
-   AI_PROVIDER=openai  # 目前仅支持openai
+   # AI提供商选择（主备架构）
+   AI_PRIMARY_PROVIDER=gemini      # 主服务: gemini | openai
+   AI_FALLBACK_PROVIDER=openai     # 备用服务（主服务失败时自动切换）
 
-   # OpenAI配置
-   OPENAI_API_KEY=sk-proj-your-actual-key-here
-   OPENAI_MODEL=gpt-4o-mini  # 或 gpt-3.5-turbo（更便宜）
+   # Gemini配置（主服务，推荐）
+   GEMINI_API_KEY=your-gemini-key-here
+   GEMINI_MODEL=gemini-1.5-flash   # 或 gemini-1.5-pro（更强大）
+   GEMINI_TIMEOUT=30               # API超时时间（秒）
+
+   # OpenAI配置（备用服务）
+   OPENAI_API_KEY=sk-your-openai-key-here  # 可选，用于备用
+   OPENAI_MODEL=gpt-4o-mini        # 或 gpt-3.5-turbo（更便宜）
    OPENAI_TEMPERATURE=0.7
    OPENAI_MAX_TOKENS=1000
    OPENAI_TIMEOUT=30
 
-   # AI生成限额
-   AI_GENERATION_LIMIT_GUEST=5   # 游客每天5次
-   AI_GENERATION_LIMIT_USER=10   # 注册用户每天10次
+   # AI生成限额（分层配置）
+   GUEST_AI_GENERATION_LIMIT=5           # 游客每天5次
+   FREE_USER_AI_GENERATION_LIMIT=20      # 免费用户每天20次
+   PREMIUM_USER_AI_GENERATION_LIMIT=-1   # Premium用户无限制（-1表示无限）
    ```
 
-3. **重启服务**:
+3. **成本对比**:
+
+   | 提供商 | 模型 | 成本/次生成 | 速度 | 推荐用途 |
+   |--------|------|-------------|------|----------|
+   | Gemini | gemini-1.5-flash | $0.001-0.005 | 极快 | **主服务（推荐）** |
+   | Gemini | gemini-1.5-pro | $0.005-0.015 | 快 | 高质量生成 |
+   | OpenAI | gpt-4o-mini | $0.01-0.03 | 快 | 备用服务 |
+   | OpenAI | gpt-3.5-turbo | $0.005-0.01 | 中等 | 成本敏感场景 |
+
+4. **重启服务**:
 
    ```bash
    # Ctrl+C 停止当前服务
    pdm run uvicorn app.main:app --reload
    ```
 
-4. **测试AI生成功能**:
+5. **测试AI生成功能**:
 
    ```bash
-   # 查询新单词（触发AI生成，耗时5-10秒）
+   # 查询新单词（触发AI生成）
    curl http://localhost:8000/api/v1/words/query/contribution
 
    # 预期返回：200 OK，包含AI生成的单词学习手册
    ```
 
-5. **AI生成限额说明**:
+   **验证日志**（查看使用的提供商）：
+   ```
+   ✅ Primary AI provider initialized: gemini
+   或
+   ⚠️ Primary provider (gemini) failed: ... Attempting fallback...
+   ⚠️ Using fallback AI provider: openai
+   ```
+
+6. **AI生成限额说明**:
    - **游客**（未登录）：5次/天/IP
-   - **注册用户**：10次/天/用户
+   - **免费用户**（已注册）：20次/天/用户
+   - **Premium用户**：无限制
    - 超出限额后返回429错误：`AI_GENERATION_LIMIT_EXCEEDED`
    - AI生成的单词会缓存到数据库，避免重复生成
 
-6. **成本控制**:
-   - 使用 `gpt-4o-mini`：约 $0.01-0.03/次生成
-   - 使用 `gpt-3.5-turbo`：约 $0.005-0.01/次生成
-   - 首次生成后会缓存，后续查询不产生费用
+**配置场景**:
+
+```bash
+# 场景1: 仅使用Gemini（成本最低）
+AI_PRIMARY_PROVIDER=gemini
+AI_FALLBACK_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-key
+
+# 场景2: Gemini主 + OpenAI备用（高可用）
+AI_PRIMARY_PROVIDER=gemini
+AI_FALLBACK_PROVIDER=openai
+GEMINI_API_KEY=your-gemini-key
+OPENAI_API_KEY=your-openai-key
+
+# 场景3: 仅使用OpenAI
+AI_PRIMARY_PROVIDER=openai
+AI_FALLBACK_PROVIDER=openai
+OPENAI_API_KEY=your-openai-key
+```
 
 **常见问题**:
 
-- **Q: 如果没有配置OpenAI API Key会怎样？**
-  - A: 查询新单词时会返回500错误（AI服务不可用）
+- **Q: 如果没有配置任何API Key会怎样？**
+  - A: 主备服务都会初始化失败，查询新单词时返回500错误
+
+- **Q: 如何查看当前使用的提供商？**
+  - A: 查看服务启动日志，关注以下信息：
+    ```
+    ✅ Primary AI provider initialized: gemini
+    ```
+
+- **Q: 主备切换什么时候发生？**
+  - A: 仅在服务启动时，如果主服务初始化失败（如API Key无效），会自动切换到备用服务
 
 - **Q: 如何查看AI生成日志？**
   - A: 查询数据库表 `ai_generation_logs`
@@ -281,8 +344,8 @@ curl http://localhost:8000/api/v1/words/query/accommodation
     DELETE FROM ai_generation_logs WHERE created_at < CURRENT_DATE;
     ```
 
-- **Q: OpenAI API调用超时怎么办？**
-  - A: 调整`.env`中的`OPENAI_TIMEOUT`参数（默认30秒）
+- **Q: AI API调用超时怎么办？**
+  - A: 调整`.env`中的`GEMINI_TIMEOUT`或`OPENAI_TIMEOUT`参数（默认30秒）
 
 ### 3. 数据库迁移失败
 
