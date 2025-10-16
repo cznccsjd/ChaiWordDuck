@@ -24,6 +24,9 @@ from app.schemas.word import (
     WordByIdResponse,
 )
 from app.services.rate_limit import RateLimitService
+from app.services.ai.factory import AIServiceFactory
+from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError
+from app.services.ai_generation_service import AIGenerationService
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -181,60 +184,167 @@ async def query_word_internal(
     )
     word = result.scalar_one_or_none()
 
-    if not word:
+    if word:
+        log_with_context(
+            logger, "info", "Word found in cache",
+            word=normalized_word, is_golden=word.is_golden
+        )
+
+        # 检查查询限制并记录
+        rate_limiter = RateLimitService(db)
+        allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
+            word_id=word.id,
+            user=current_user,
+            request=request,
+        )
+
+        # 计算剩余查询次数
+        remaining_queries = limit - used if limit != -1 else -1
+
         log_with_context(
             logger,
-            "warning",
-            "Word not found",
+            "info",
+            "Word query successful",
             user_info=user_info,
-            word=normalized_word,
+            word_id=word.id,
+            user_type=user_type,
+            used_queries=used,
+            remaining_queries=remaining_queries,
+        )
+
+        # 构造响应
+        return WordQueryResponse(
+            id=word.id,
+            word=word.word,
+            phonetic=word.phonetic,
+            part_of_speech=word.part_of_speech,
+            core_game=word.core_game,
+            scenario_formal=word.scenario_formal,
+            scenario_casual=word.scenario_casual,
+            etymology_breakdown=word.etymology_breakdown,
+            etymology_story=word.etymology_story,
+            common_mistakes=word.common_mistakes,
+            memory_trick=word.memory_trick,
+            is_golden=word.is_golden,
+            remaining_queries=remaining_queries,
+        )
+
+    # 2. 数据库无数据 → 检查AI生成限额
+    log_with_context(
+        logger, "info", "Word not in cache, checking AI limit",
+        word=normalized_word
+    )
+
+    limit_exceeded = await AIGenerationService.check_generation_limit(
+        current_user, request, db
+    )
+
+    if limit_exceeded:
+        log_with_context(
+            logger, "warning", "AI generation limit exceeded",
+            word=normalized_word
         )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
-                "code": ErrorCode.WORD_NOT_FOUND,
-                "message": "未找到该单词，请检查拼写",
-            },
+                "code": "AI_GENERATION_LIMIT_EXCEEDED",
+                "message": "AI生成限额已用完（游客5次/天，注册用户10次/天）"
+            }
         )
 
-    # 检查查询限制并记录
-    rate_limiter = RateLimitService(db)
-    allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
-        word_id=word.id,
-        user=current_user,
-        request=request,
-    )
+    # 3. 调用AI生成
+    try:
+        log_with_context(
+            logger, "info", "Triggering AI generation",
+            word=normalized_word
+        )
 
-    # 计算剩余查询次数
-    remaining_queries = limit - used if limit != -1 else -1
+        ai_service = AIServiceFactory.get_service()
+        word_data = await ai_service.generate_word_manual(normalized_word)
 
-    log_with_context(
-        logger,
-        "info",
-        "Word query successful",
-        user_info=user_info,
-        word_id=word.id,
-        user_type=user_type,
-        used_queries=used,
-        remaining_queries=remaining_queries,
-    )
+        # 4. 保存到数据库
+        new_word = Word(
+            word=word_data.word,
+            phonetic=word_data.phonetic or "",
+            part_of_speech=word_data.part_of_speech or "",
+            core_game=word_data.core_game,
+            scenario_formal=word_data.scenario_formal,
+            scenario_casual=word_data.scenario_casual,
+            etymology_breakdown=word_data.etymology_breakdown,
+            etymology_story=word_data.etymology_story or "",
+            memory_trick=word_data.memory_trick,
+            common_mistakes=word_data.common_mistakes or "",
+            is_golden=False,
+            source="ai_generated"
+        )
+        db.add(new_word)
+        await db.commit()
+        await db.refresh(new_word)
 
-    # 构造响应
-    return WordQueryResponse(
-        id=word.id,
-        word=word.word,
-        phonetic=word.phonetic,
-        part_of_speech=word.part_of_speech,
-        core_game=word.core_game,
-        scenario_formal=word.scenario_formal,
-        scenario_casual=word.scenario_casual,
-        etymology_breakdown=word.etymology_breakdown,
-        etymology_story=word.etymology_story,
-        common_mistakes=word.common_mistakes,
-        memory_trick=word.memory_trick,
-        is_golden=word.is_golden,
-        remaining_queries=remaining_queries,
-    )
+        # 5. 记录AI生成日志
+        await AIGenerationService.log_generation(
+            normalized_word, current_user, request, db
+        )
+
+        log_with_context(
+            logger, "info", "AI generation successful",
+            word=normalized_word
+        )
+
+        # 6. 检查查询限制并记录
+        rate_limiter = RateLimitService(db)
+        allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
+            word_id=new_word.id,
+            user=current_user,
+            request=request,
+        )
+
+        # 计算剩余查询次数
+        remaining_queries = limit - used if limit != -1 else -1
+
+        return WordQueryResponse(
+            id=new_word.id,
+            word=new_word.word,
+            phonetic=new_word.phonetic,
+            part_of_speech=new_word.part_of_speech,
+            core_game=new_word.core_game,
+            scenario_formal=new_word.scenario_formal,
+            scenario_casual=new_word.scenario_casual,
+            etymology_breakdown=new_word.etymology_breakdown,
+            etymology_story=new_word.etymology_story,
+            common_mistakes=new_word.common_mistakes,
+            memory_trick=new_word.memory_trick,
+            is_golden=False,
+            remaining_queries=remaining_queries,
+        )
+
+    except AITimeoutError:
+        log_with_context(
+            logger, "error", "AI generation timeout",
+            word=normalized_word
+        )
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail={"code": "AI_TIMEOUT", "message": "AI生成超时，请稍后重试"}
+        )
+    except AIRateLimitError:
+        log_with_context(
+            logger, "error", "AI rate limit",
+            word=normalized_word
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"code": "AI_RATE_LIMIT", "message": "AI服务繁忙，请稍后重试"}
+        )
+    except AIServiceError as e:
+        log_with_context(
+            logger, "error", "AI service error",
+            word=normalized_word, error=str(e)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "AI_ERROR", "message": "AI服务暂时不可用"}
+        )
 
 
 @router.get(
