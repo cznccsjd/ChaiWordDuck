@@ -206,7 +206,85 @@ pdm run alembic current  # 应显示: 004_guest_query_logs (head)
 curl http://localhost:8000/api/v1/words/query/accommodation
 ```
 
-### 2. 数据库迁移失败
+### 2. AI服务配置（可选，用于AI生成单词）
+
+**背景**: 当查询数据库中不存在的单词时，系统会调用AI服务实时生成单词学习手册。
+
+**配置步骤**:
+
+1. **获取OpenAI API Key**:
+   - 访问 https://platform.openai.com/api-keys
+   - 创建新的API Key
+   - 复制API Key（格式：`sk-proj-...`）
+
+2. **配置环境变量**:
+
+   编辑 `backend/.env` 文件，添加：
+
+   ```bash
+   # AI服务选择
+   AI_PROVIDER=openai  # 目前仅支持openai
+
+   # OpenAI配置
+   OPENAI_API_KEY=sk-proj-your-actual-key-here
+   OPENAI_MODEL=gpt-4o-mini  # 或 gpt-3.5-turbo（更便宜）
+   OPENAI_TEMPERATURE=0.7
+   OPENAI_MAX_TOKENS=1000
+   OPENAI_TIMEOUT=30
+
+   # AI生成限额
+   AI_GENERATION_LIMIT_GUEST=5   # 游客每天5次
+   AI_GENERATION_LIMIT_USER=10   # 注册用户每天10次
+   ```
+
+3. **重启服务**:
+
+   ```bash
+   # Ctrl+C 停止当前服务
+   pdm run uvicorn app.main:app --reload
+   ```
+
+4. **测试AI生成功能**:
+
+   ```bash
+   # 查询新单词（触发AI生成，耗时5-10秒）
+   curl http://localhost:8000/api/v1/words/query/contribution
+
+   # 预期返回：200 OK，包含AI生成的单词学习手册
+   ```
+
+5. **AI生成限额说明**:
+   - **游客**（未登录）：5次/天/IP
+   - **注册用户**：10次/天/用户
+   - 超出限额后返回429错误：`AI_GENERATION_LIMIT_EXCEEDED`
+   - AI生成的单词会缓存到数据库，避免重复生成
+
+6. **成本控制**:
+   - 使用 `gpt-4o-mini`：约 $0.01-0.03/次生成
+   - 使用 `gpt-3.5-turbo`：约 $0.005-0.01/次生成
+   - 首次生成后会缓存，后续查询不产生费用
+
+**常见问题**:
+
+- **Q: 如果没有配置OpenAI API Key会怎样？**
+  - A: 查询新单词时会返回500错误（AI服务不可用）
+
+- **Q: 如何查看AI生成日志？**
+  - A: 查询数据库表 `ai_generation_logs`
+    ```sql
+    SELECT * FROM ai_generation_logs ORDER BY created_at DESC LIMIT 10;
+    ```
+
+- **Q: 如何重置AI生成限额？**
+  - A: 限额按自然日计算（UTC时间0点重置），也可以手动清理：
+    ```sql
+    DELETE FROM ai_generation_logs WHERE created_at < CURRENT_DATE;
+    ```
+
+- **Q: OpenAI API调用超时怎么办？**
+  - A: 调整`.env`中的`OPENAI_TIMEOUT`参数（默认30秒）
+
+### 3. 数据库迁移失败
 
 ```bash
 # 重置数据库
@@ -214,7 +292,7 @@ pdm run alembic downgrade base
 pdm run alembic upgrade head
 ```
 
-### 2. 测试失败
+### 4. 测试失败
 
 ```bash
 # 清理缓存
@@ -222,7 +300,7 @@ rm -rf .pytest_cache __pycache__
 pdm run pytest
 ```
 
-### 3. bcrypt版本问题
+### 5. bcrypt版本问题
 
 如果遇到bcrypt相关错误,确保使用bcrypt 4.1.2版本:
 
