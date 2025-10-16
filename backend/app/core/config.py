@@ -59,19 +59,79 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = Field(default=30, description="每分钟请求限制")
     rate_limit_per_hour: int = Field(default=1000, description="每小时请求限制")
 
+    # ============ AI服务配置（多提供商架构） ============
+    # 主备提供商配置
+    ai_primary_provider: str = Field(
+        default="gemini",
+        env="AI_PRIMARY_PROVIDER",
+        description="主AI服务提供商（gemini/openai）"
+    )
+    ai_fallback_provider: str = Field(
+        default="openai",
+        env="AI_FALLBACK_PROVIDER",
+        description="备用AI服务提供商（gemini/openai）"
+    )
+
+    # Gemini配置
+    gemini_api_key: str = Field(
+        default="",
+        env="GEMINI_API_KEY",
+        description="Gemini API密钥"
+    )
+    gemini_model: str = Field(
+        default="gemini-1.5-flash",
+        env="GEMINI_MODEL",
+        description="Gemini模型名称"
+    )
+    gemini_timeout: int = Field(
+        default=30,
+        env="GEMINI_TIMEOUT",
+        description="Gemini请求超时时间（秒）"
+    )
+
     # OpenAI配置
-    openai_api_key: str = Field(default="", description="OpenAI API密钥")
-    openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI模型")
-    openai_temperature: float = Field(default=0.7, description="OpenAI温度参数")
-    openai_max_tokens: int = Field(default=1000, description="OpenAI最大token数")
-    openai_timeout: int = Field(default=30, description="OpenAI请求超时(秒)")
+    openai_api_key: str = Field(
+        default="",
+        env="OPENAI_API_KEY",
+        description="OpenAI API密钥（用于备用）"
+    )
+    openai_model: str = Field(
+        default="gpt-4o-mini",
+        env="OPENAI_MODEL",
+        description="OpenAI模型名称"
+    )
+    openai_temperature: float = Field(
+        default=0.7,
+        env="OPENAI_TEMPERATURE",
+        description="OpenAI温度参数"
+    )
+    openai_max_tokens: int = Field(
+        default=1000,
+        env="OPENAI_MAX_TOKENS",
+        description="OpenAI最大token数"
+    )
+    openai_timeout: int = Field(
+        default=30,
+        env="OPENAI_TIMEOUT",
+        description="OpenAI请求超时时间（秒）"
+    )
 
-    # AI Provider Selection
-    ai_provider: str = Field(default="openai", description="AI服务提供商 (openai/gemini)")
-
-    # AI Generation Limits
-    ai_generation_limit_guest: int = Field(default=5, description="游客每日AI生成限制")
-    ai_generation_limit_user: int = Field(default=10, description="注册用户每日AI生成限制")
+    # AI生成限额配置
+    guest_ai_generation_limit: int = Field(
+        default=5,
+        env="GUEST_AI_GENERATION_LIMIT",
+        description="游客每日AI生成限额"
+    )
+    free_user_ai_generation_limit: int = Field(
+        default=20,
+        env="FREE_USER_AI_GENERATION_LIMIT",
+        description="免费用户每日AI生成限额"
+    )
+    premium_user_ai_generation_limit: int = Field(
+        default=-1,
+        env="PREMIUM_USER_AI_GENERATION_LIMIT",
+        description="Premium用户AI生成限额（-1表示无限制）"
+    )
 
     # 邮件配置
     sendgrid_api_key: str = Field(default="", description="SendGrid API密钥")
