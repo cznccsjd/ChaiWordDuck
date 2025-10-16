@@ -64,7 +64,14 @@ class Settings(BaseSettings):
     openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI模型")
     openai_temperature: float = Field(default=0.7, description="OpenAI温度参数")
     openai_max_tokens: int = Field(default=1000, description="OpenAI最大token数")
-    openai_timeout: int = Field(default=10, description="OpenAI请求超时(秒)")
+    openai_timeout: int = Field(default=30, description="OpenAI请求超时(秒)")
+
+    # AI Provider Selection
+    ai_provider: str = Field(default="openai", description="AI服务提供商 (openai/gemini)")
+
+    # AI Generation Limits
+    ai_generation_limit_guest: int = Field(default=5, description="游客每日AI生成限制")
+    ai_generation_limit_user: int = Field(default=10, description="注册用户每日AI生成限制")
 
     # 邮件配置
     sendgrid_api_key: str = Field(default="", description="SendGrid API密钥")

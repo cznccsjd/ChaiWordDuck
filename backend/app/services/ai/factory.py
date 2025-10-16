@@ -1,0 +1,37 @@
+"""AI服务工厂"""
+from typing import Optional
+from app.services.ai.base import AIServiceBase
+from app.services.ai.openai_service import OpenAIService
+from app.core.config import get_settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+class AIServiceFactory:
+    """AI服务工厂（单例模式）"""
+
+    _instance: Optional[AIServiceBase] = None
+
+    @classmethod
+    def get_service(cls) -> AIServiceBase:
+        """获取AI服务实例"""
+        if cls._instance is None:
+            settings = get_settings()
+
+            if settings.ai_provider == "openai":
+                logger.info("Initializing OpenAI service")
+                cls._instance = OpenAIService(
+                    api_key=settings.openai_api_key,
+                    model=settings.openai_model,
+                    timeout=settings.openai_timeout
+                )
+            else:
+                raise ValueError(f"Unsupported AI provider: {settings.ai_provider}")
+
+        return cls._instance
+
+    @classmethod
+    def reset_instance(cls):
+        """重置实例（用于测试）"""
+        cls._instance = None
