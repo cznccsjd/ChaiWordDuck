@@ -29,12 +29,14 @@ class AIGenerationService:
         """
         settings = get_settings()
 
-        # 确定限额
+        # 确定限额（根据用户类型）
         if current_user:
-            limit = settings.ai_generation_limit_user
+            # TODO: 实现Premium用户检查逻辑
+            # 目前所有注册用户都视为免费用户
+            limit = settings.free_user_ai_generation_limit
             user_id = current_user.id
         else:
-            limit = settings.ai_generation_limit_guest
+            limit = settings.guest_ai_generation_limit
             user_id = None
 
         # 获取IP
