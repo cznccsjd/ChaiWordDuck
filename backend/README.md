@@ -183,7 +183,30 @@ gunicorn app.main:app \
 
 ## 常见问题
 
-### 1. 数据库迁移失败
+### 1. 数据库初始化（首次启动必读）
+
+**问题**: 启动服务后访问API出现 `relation "words" does not exist` 错误
+
+**原因**: 数据库迁移脚本未执行，数据库表尚未创建
+
+**解决方案**:
+```bash
+# 步骤1: 确保PostgreSQL服务正在运行
+# 步骤2: 确保.env文件中的DATABASE_URL配置正确
+# 步骤3: 执行数据库迁移
+pdm run alembic upgrade head
+
+# 步骤4: 验证迁移成功
+pdm run alembic current  # 应显示: 004_guest_query_logs (head)
+```
+
+**验证数据**:
+```bash
+# 测试黄金手册单词查询
+curl http://localhost:8000/api/v1/words/query/accommodation
+```
+
+### 2. 数据库迁移失败
 
 ```bash
 # 重置数据库

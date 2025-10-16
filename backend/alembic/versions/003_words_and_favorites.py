@@ -39,7 +39,7 @@ def upgrade() -> None:
         sa.Column('etymology_story', sa.Text(), nullable=True),
         sa.Column('common_mistakes', sa.Text(), nullable=False),
         sa.Column('memory_trick', sa.Text(), nullable=False),
-        sa.Column('is_golden', sa.Boolean(), nullable=False, server_default='0'),
+        sa.Column('is_golden', sa.Boolean(), nullable=False, server_default=sa.text('false')),
         sa.Column('source', sa.String(length=20), nullable=False, server_default='ai'),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
@@ -105,7 +105,7 @@ def upgrade() -> None:
          '古罗马时代，主人为了让客人住得舒服，会调整房间布置和自己的习惯。这种"双向调整达成舒适共处"的理念，演变成了accommodation这个词。',
          '最容易犯的错：拼写时漏掉一个m或一个c。正确拼写记住：两个c，两个m',
          '想象酒店房间有两张床(cc)和两个枕头(mm)，这样就记住了accommodation的拼写',
-         1, 'manual'),
+         true, 'manual'),
 
         ('embarrassment', '/ɪmˈbærəsmənt/', 'noun',
          '这是一种"被公众关注而手足无措"的社交困境游戏',
@@ -115,7 +115,7 @@ def upgrade() -> None:
          '词源来自法语embarrasser，原意是"被栅栏围住，进退两难"。就像被困在众人目光的栅栏中，想逃逃不掉的尴尬处境。',
          '拼写陷阱：两个r，两个s。很多人会漏掉一个',
          '记住em-BARR(两个r)-ASS(两个s)-ment，想象尴尬时"屁股(ass)被栅栏(barr)卡住"',
-         1, 'manual'),
+         true, 'manual'),
 
         ('procrastination', '/proʊˌkræstɪˈneɪʃn/', 'noun',
          '这是一场"明日复明日"的自我欺骗游戏',
@@ -125,7 +125,7 @@ def upgrade() -> None:
          '拉丁语crastinus意为"属于明天的"。把今天的事推到明天，明天的事推到后天，这就是procrastination的本质。',
          '容易拼错的部分：中间的-crastin-，记住包含"cras"（明天）',
          '谐音记忆："拖-cras-ti-nation" = "拖到明天"的国度',
-         1, 'manual'),
+         true, 'manual'),
 
         ('Mediterranean', '/ˌmedɪtəˈreɪniən/', 'adjective',
          '这是"陆地中间的海"的地理命名游戏',
@@ -135,7 +135,7 @@ def upgrade() -> None:
          '地中海被欧洲、亚洲和非洲三大陆包围，是真正的"陆地中间的海"，因此得名Mediterranean。',
          '易错点：中间的-rr-要双写，-anean结尾容易拼错',
          '拆解记忆：medi(中间) + terr(陆地) + anean → 陆地中间的海',
-         1, 'manual'),
+         true, 'manual'),
 
         ('Massachusetts', '/ˌmæsəˈtʃuːsɪts/', 'noun',
          '这是印第安部落名称演变的历史游戏',
@@ -145,7 +145,7 @@ def upgrade() -> None:
          '源自印第安语Massachusett部落，意为"大山丘附近的地方"。欧洲殖民者保留了这个印第安地名，演变成今天的州名。',
          '超级易错：两个s，两个t，中间还有chu。是美国最难拼的州名之一',
          '分段记忆：Massa + chu + setts，想象"麻辣(Ma-ssa)猪(chu)蹄(setts)"',
-         1, 'manual'),
+         true, 'manual'),
 
         ('entrepreneur', '/ˌɑːntrəprəˈnɜːr/', 'noun',
          '这是一场"承担风险追求机会"的商业冒险游戏',
@@ -155,7 +155,7 @@ def upgrade() -> None:
          '法语词根，原意是"在机会之间穿梭并抓住它的人"。企业家就是那些敢于在不确定性中抓住商机的人。',
          '易错：中间的-pre-，结尾的-eur。很多人会拼成-or',
          '谐音：按-tre-pre-neur，"安特儿-扑-呢儿"',
-         1, 'manual'),
+         true, 'manual'),
 
         ('conscientious', '/ˌkɑːnʃiˈenʃəs/', 'adjective',
          '这是"良心驱动的细致负责"品质游戏',
@@ -165,7 +165,7 @@ def upgrade() -> None:
          '词根sci-表示"知道"，conscience是"良心"。conscientious就是"有良心地做事"，引申为认真负责。',
          '拼写难点：-sci-和-enti-的组合，中间的t容易漏',
          '联想记忆：con + science(科学) + tious → 像科学家一样严谨认真',
-         1, 'manual'),
+         true, 'manual'),
 
         ('pharmaceutical', '/ˌfɑːrməˈsuːtɪkl/', 'adjective',
          '这是"药物制造与应用"的医学科技游戏',
@@ -175,7 +175,7 @@ def upgrade() -> None:
          '希腊语pharmakon原意是"药物、毒药"。古代医学中，药和毒往往只是剂量之差。',
          '易错：ph-开头(不是f)，中间-ceu-组合特殊',
          '拆解：pharm(药房) +aceutical，想象药房里的专业药品',
-         1, 'manual'),
+         true, 'manual'),
 
         ('archaeology', '/ˌɑːrkiˈɑːlədʒi/', 'noun',
          '这是"挖掘古代遗迹探索历史"的时光穿越游戏',
@@ -185,7 +185,7 @@ def upgrade() -> None:
          '希腊语archaios意为"古老的"。考古学就是研究古老事物的学科。',
          '英美拼写差异：美式archaeology，英式archeology(少一个a)',
          '记忆：arch(拱门，古建筑) + ae + ology(学科) → 研究古建筑的学科',
-         1, 'manual'),
+         true, 'manual'),
 
         ('bureaucracy', '/bjʊˈrɑːkrəsi/', 'noun',
          '这是"办公桌统治"的权力运作游戏',
@@ -195,7 +195,7 @@ def upgrade() -> None:
          '法语bureau原意是"办公桌"。bureaucracy直译就是"办公桌的统治"，指依靠文书和流程运转的官僚体系。',
          '拼写难点：bureau-部分，-cracy结尾(不是-crazy)',
          '联想：bureau(局) + cracy(统治) → 官僚局的统治方式',
-         1, 'manual')
+         true, 'manual')
     """)
 
 
