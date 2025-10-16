@@ -91,567 +91,145 @@ ac-  +  -commod-  +  -ation
 
 ## 📊 后端开发进度
 
-### ✅ 已完成 (2025-10-15)
+### ✅ 核心功能已完成 (2025-10-16)
 
-后端核心API和基础设施已实现，包括：
+后端MVP核心功能已实现，包括：
 
-**核心功能**:
+#### 用户认证与授权
 - ✅ 用户认证系统（注册、登录、JWT、密码重置）
-- ✅ 单词查询系统（查询API、获取单词详情、查询统计）
-- ✅ 收藏系统（添加/删除收藏、获取收藏列表、检查收藏状态）
-- ✅ 查询限制系统（每日查询次数限制、查询历史记录）
+- ✅ 可选认证机制（支持游客模式）
 
-**数据库架构**:
-- ✅ PostgreSQL 数据库设计（4张表：users、words、favorites、query_logs）
-- ✅ Docker Compose 统一环境（PostgreSQL + Redis + 测试数据库）
-- ✅ Alembic 数据库迁移工具
-- ✅ SQLAlchemy 异步ORM
+#### 单词查询系统
+- ✅ 单词查询API（查询、获取详情、统计）
+- ✅ 游客识别服务（IP + 设备指纹）
+- ✅ 统一限流服务（游客10次/天，注册50次/天）
+- ✅ 查询历史记录
+
+#### 收藏系统
+- ✅ 添加/删除收藏
+- ✅ 获取收藏列表
+- ✅ 检查收藏状态
+
+#### 数据库设计
+- ✅ 5张核心表（users、words、favorites、query_logs、guest_query_logs）
+- ✅ 数据库迁移脚本（Alembic）
 - ✅ 预置10个黄金手册单词
 
-**测试架构**:
-- ✅ 单元测试框架（SQLite内存数据库）
-- ✅ 集成测试框架（PostgreSQL测试数据库）
-- ✅ 测试数据隔离机制
-- ✅ pytest + pytest-asyncio 配置
+#### 测试
+- ✅ 游客模式集成测试（10+用例）
+- ✅ 单词查询集成测试（API端点测试）
+- ✅ TDD开发模式（先写测试再实现）
 
 ### ⏳ 待完成功能
 
-- ⏳ Redis缓存集成（已配置Docker服务，待实现缓存逻辑）
+- ⏳ Redis缓存集成（已预留接口）
 - ⏳ OpenAI API集成（AI生成单词手册）
-- ⏳ 游客识别和限制（IP + Cookie）
-- ⏳ 完整的单元测试和集成测试覆盖
-- ⏳ API性能优化和监控
+- ⏳ 复习提醒系统（邮件服务）
+- ⏳ 性能优化（CDN、数据库索引）
 
-详细进度请查看：[任务跟踪文档](./docs/TODOS.md)
+详细进度请查看：[任务跟踪文档](./docs/TODOS.md) | [架构设计](./DESIGN.md)
 
 ---
 
 ## 🚀 如何运行项目
 
-### 开发环境要求
+### 前端开发环境
 
-- Node.js 18+ (前端)
-- Python 3.12+ (后端)
-- **PDM** (Python依赖管理) - **强制使用，不使用 pip** - [安装指南](https://pdm-project.org/)
-- Docker Desktop (数据库和缓存)
-- Git
-
-### 快速开始
-
-#### 1. 克隆项目
-
+#### 1. 安装依赖
 ```bash
-git clone https://github.com/cznccsjd/ChaiWordDuck.git
-cd ChaiWordDuck
+cd frontend
+npm install
 ```
 
-#### 2. 启动 Docker 服务
-
-```bash
-# 启动 PostgreSQL + Redis + 测试数据库
-docker-compose up -d
-
-# 验证容器运行状态
-docker-compose ps
+#### 2. 配置环境变量
+创建 `.env.local` 文件：
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-#### 3. 配置后端环境
+#### 3. 启动开发服务器
+```bash
+npm run dev
+```
 
+访问 [http://localhost:3000](http://localhost:3000)
+
+#### 4. 构建生产版本
+```bash
+npm run build
+npm run start
+```
+
+#### 5. 代码检查
+```bash
+# ESLint检查
+npm run lint
+
+# TypeScript类型检查
+npm run type-check
+```
+
+---
+
+### 后端开发环境
+
+#### 1. 安装依赖
 ```bash
 cd backend
-
-# 复制环境变量文件
-cp .env.example .env
-
-# 安装依赖（使用 PDM，不要使用 pip！）
 pdm install
+```
 
-# ⚠️ 注意：不要使用 pip install -r requirements.txt
-# ⚠️ 项目使用 PDM 管理依赖，请使用上述 pdm install 命令
+#### 2. 配置环境变量
+创建 `.env` 文件：
+```bash
+# 数据库配置
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/chaiword_duck
 
-# (可选) 运行数据库迁移
-# 注意: 如果遇到编码问题，应用启动时会自动创建表结构
+# JWT配置
+JWT_SECRET_KEY=your-secret-key-here
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+
+# Redis配置（可选）
+REDIS_URL=redis://localhost:6379/0
+
+# OpenAI配置（可选）
+OPENAI_API_KEY=sk-...
+
+# 日志级别
+LOG_LEVEL=INFO
+```
+
+#### 3. 运行数据库迁移
+```bash
 pdm run alembic upgrade head
 ```
 
-#### 4. 配置前端环境
-
+#### 4. 启动开发服务器
 ```bash
-cd frontend
-
-# 安装依赖
-npm install
-
-# 创建环境变量文件
-# 创建 .env.local 文件，内容如下:
-# NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-```
-
-#### 5. 启动开发服务器
-
-在两个独立的终端窗口中：
-
-```bash
-# 终端1: 启动后端
-cd backend
 pdm run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+访问 [http://localhost:8000/docs](http://localhost:8000/docs) 查看API文档
+
+#### 5. 运行测试
 ```bash
-# 终端2: 启动前端
-cd frontend
-npm run dev
-```
-
-#### 6. 访问应用
-
-- 前端应用: http://localhost:3001
-- 后端API文档: http://localhost:8000/docs
-- 后端API: http://localhost:8000
-
----
-
-### Docker Compose 使用
-
-#### 服务说明
-
-项目使用 Docker Compose 提供统一的数据库和缓存环境：
-
-| 服务 | 容器名 | 端口 | 说明 |
-|------|--------|------|------|
-| PostgreSQL | chaiword_db | 5432 | 开发数据库 |
-| Redis | chaiword_redis | 6379 | 缓存服务 |
-| PostgreSQL测试 | chaiword_db_test | 5433 | 集成测试专用 |
-
-#### 常用命令
-
-```bash
-# 启动所有服务
-docker-compose up -d
-
-# 查看服务状态
-docker-compose ps
-
-# 查看服务日志
-docker-compose logs -f db
-
-# 停止所有服务
-docker-compose down
-
-# 停止并删除所有数据 (慎用！)
-docker-compose down -v
-
-# 重启服务
-docker-compose restart db
-```
-
-#### 数据持久化
-
-- PostgreSQL 数据存储在 Docker volume: `postgres_data`
-- Redis 数据存储在 Docker volume: `redis_data`
-- 测试数据库使用内存存储 (tmpfs)，测试结束后自动清除
-
----
-
-### 开发工作流
-
-#### 日常开发
-
-```bash
-# 1. 确保 Docker 服务运行
-docker-compose ps
-
-# 2. 启动后端 (开发模式，自动重载)
-cd backend
-pdm run uvicorn app.main:app --reload
-
-# 3. 启动前端 (开发模式，自动重载)
-cd frontend
-npm run dev
-```
-
-#### 运行测试
-
-```bash
-# 后端测试
-cd backend
-
 # 运行所有测试
 pdm run pytest
 
-# 运行单元测试 (使用SQLite内存数据库)
-pdm run pytest -m unit
-
-# 运行集成测试 (使用PostgreSQL测试数据库)
-pdm run pytest -m integration
-
-# 生成测试覆盖率报告
+# 运行测试并生成覆盖率报告
 pdm run pytest --cov=app --cov-report=html
 ```
 
-#### 数据库操作
-
-```bash
-# 创建新的迁移文件
-cd backend
-pdm run alembic revision --autogenerate -m "描述变更内容"
-
-# 应用迁移
-pdm run alembic upgrade head
-
-# 回滚迁移
-pdm run alembic downgrade -1
-
-# 查看迁移历史
-pdm run alembic history
-```
-
----
-
-### 故障排查
-
-#### Docker 相关问题
-
-**问题: docker-compose 命令失败**
-```bash
-# 解决方案: 确保 Docker Desktop 正在运行
-# Windows: 启动 Docker Desktop 应用
-# Mac/Linux: 检查 Docker 服务状态
-docker ps
-```
-
-**问题: 端口被占用**
-```bash
-# Windows: 查看端口占用
-netstat -ano | findstr :5432
-netstat -ano | findstr :8000
-
-# 停止占用端口的进程或更改配置
-```
-
-#### 数据库连接问题
-
-**问题: 后端无法连接数据库**
-```bash
-# 1. 检查 Docker 容器状态
-docker-compose ps
-
-# 2. 查看数据库日志
-docker-compose logs db
-
-# 3. 验证数据库连接
-docker exec -it chaiword_db psql -U postgres -d chaiword_duck
-```
-
-#### 前端问题
-
-**问题: 前端运行在 3001 端口而非 3000**
-- 这是正常的，Next.js 会自动选择可用端口
-- 确保在 `backend/.env` 中的 CORS 配置包含 3001 端口:
-  ```
-  CORS_ORIGINS=http://localhost:3000,http://localhost:3001
-  ```
-
-#### Alembic 编码问题 (Windows)
-
-**问题: alembic upgrade head 报编码错误**
-- 这是 Windows 系统编码问题
-- **临时解决方案**: 应用启动时会自动创建表结构
-- **长期解决方案**: 确保所有 Python 文件使用 UTF-8 编码
-
-```bash
-# 设置环境变量
-set PYTHONUTF8=1
-pdm run alembic upgrade head
-```
-
----
-
-## 🚀 生产环境部署
-
-### 部署架构说明
-
-本项目采用前后端分离的部署策略，推荐使用以下免费/低成本的托管服务：
-
-| 组件 | 推荐平台 | 成本 | 说明 |
-|------|---------|------|------|
-| 前端 | Vercel | 免费 | Next.js 官方推荐，支持 SSR/ISR |
-| 后端 | Render.com | $21/月 | 原生支持 Python FastAPI + Docker |
-| 数据库 | Render PostgreSQL | 包含在上述 | 托管 PostgreSQL，自动备份 |
-| 缓存 | Render Redis | 包含在上述 | 托管 Redis，256MB 内存 |
-
-**为什么不用 Supabase？**
-- Supabase Edge Functions 只支持 Deno/TypeScript，不支持 Python
-- 如果用 Supabase，需要完全重写后端（约 3000+ 行代码）
-- Render.com 原生支持 FastAPI，无需任何改写
-- 详细分析请查看架构文档
-
-### 部署到 Render.com（后端）
-
-#### 步骤 1: 准备 Render 账号
-
-1. 注册账号：https://render.com
-2. 连接 GitHub 账号
-3. 选择 ChaiWordDuck 仓库
-
-#### 步骤 2: 创建 Blueprint 部署
-
-项目根目录已提供 `render.yaml` 配置文件，包含：
-- FastAPI Web 服务
-- PostgreSQL 数据库
-- Redis 缓存
-
-**使用 Blueprint 一键部署**：
-
-1. 在 Render 控制台选择 "New" → "Blueprint"
-2. 连接 GitHub 仓库
-3. Render 会自动读取 `render.yaml` 配置
-4. 点击 "Apply" 开始部署
-
-#### 步骤 3: 配置环境变量
-
-以下环境变量需要在 Render 控制台手动设置：
-
-**必需设置**：
-```bash
-# OpenAI API（核心功能）
-OPENAI_API_KEY=sk-your-openai-api-key
-
-# CORS配置（前端域名）
-CORS_ORIGINS=https://your-frontend-domain.vercel.app,https://chaiwordduck.com
-```
-
-**可选设置**：
-```bash
-# SendGrid邮件服务
-SENDGRID_API_KEY=your-sendgrid-api-key
-
-# Sentry错误监控
-SENTRY_DSN=your-sentry-dsn
-```
-
-其他环境变量（DATABASE_URL、REDIS_URL、JWT_SECRET_KEY）会自动生成。
-
-#### 步骤 4: 验证部署
-
-部署完成后，访问以下 URL 验证：
-
-```bash
-# 健康检查
-https://your-app.onrender.com/health
-
-# API 文档
-https://your-app.onrender.com/docs
-
-# 测试查询单词
-curl -X POST https://your-app.onrender.com/api/v1/words/query \
-  -H "Content-Type: application/json" \
-  -d '{"text": "accommodation"}'
-```
-
-#### 成本估算
-
-**MVP 阶段（Starter 计划）**：
-- Web 服务：$7/月（512MB RAM，无冷启动）
-- PostgreSQL：$7/月（1GB 存储）
-- Redis：$7/月（256MB 内存）
-- **总计**：**$21/月（约 ¥150/月）**
-
-**扩展阶段（1000-5000 用户）**：
-- Web 服务：$25/月（更多资源）
-- PostgreSQL Pro：$25/月（10GB 存储）
-- Redis Pro：$25/月（更大缓存）
-- **总计**：**$75/月（约 ¥540/月）**
-
-### 部署到 Vercel（前端）
-
-#### 步骤 1: 准备 Vercel 账号
-
-1. 注册账号：https://vercel.com
-2. 连接 GitHub 账号
-
-#### 步骤 2: 导入项目
-
-1. 在 Vercel 控制台选择 "New Project"
-2. 导入 ChaiWordDuck 仓库
-3. **重要**：设置 Root Directory 为 `frontend`
-4. Framework Preset 会自动识别为 Next.js
-
-#### 步骤 3: 配置环境变量
-
-在 Vercel 项目设置中添加：
-
-```bash
-# 后端 API 地址
-NEXT_PUBLIC_API_URL=https://your-app.onrender.com/api/v1
-```
-
-#### 步骤 4: 部署
-
-1. 点击 "Deploy" 开始首次部署
-2. 等待构建完成（约 2-3 分钟）
-3. 访问 Vercel 提供的预览 URL
-
-#### 步骤 5: 配置自定义域名（可选）
-
-1. 在 Vercel 项目设置中添加域名
-2. 按照提示配置 DNS 记录
-3. Vercel 会自动配置 SSL 证书
-
-#### 成本
-
-- **Hobby 计划**：完全免费
-- 支持 100GB 带宽/月
-- 适合 MVP 阶段使用
-
-### 部署后配置
-
-#### 1. 更新后端 CORS 配置
-
-在 Render 后端环境变量中更新：
-
-```bash
-CORS_ORIGINS=https://your-actual-domain.vercel.app
-```
-
-#### 2. 配置自动备份（推荐）
-
-Render PostgreSQL 每日自动备份，保留 7 天。
-
-**手动备份**：
-```bash
-# 在 Render 控制台执行
-pg_dump $DATABASE_URL > backup.sql
-```
-
-#### 3. 配置监控告警
-
-**Render 内置监控**：
-- CPU/内存使用率
-- 错误日志追踪
-- 自动健康检查
-
-**推荐集成 Sentry**（可选）：
-```bash
-# 在 Render 环境变量中设置
-SENTRY_DSN=your-sentry-dsn
-```
-
-### 持续部署
-
-#### 自动部署流程
-
-```
-开发者 Push 代码到 GitHub
-         ↓
-GitHub 触发 Webhook
-         ↓
-    ┌────┴────┐
-    ↓         ↓
-Render     Vercel
-自动构建    自动构建
-    ↓         ↓
-后端部署    前端部署
-    ↓         ↓
-  完成       完成
-```
-
-#### 部署分支策略
-
-- `main` 分支 → 生产环境自动部署
-- `develop` 分支 → 可配置预览环境
-- 功能分支 → Vercel 自动生成预览 URL
-
-### 部署清单
-
-部署前确认以下事项：
-
-**后端（Render.com）**：
-- [ ] `render.yaml` 配置文件已创建
-- [ ] GitHub 仓库已连接
-- [ ] 环境变量已设置（OPENAI_API_KEY、CORS_ORIGINS）
-- [ ] 健康检查通过（/health 端点）
-- [ ] API 文档可访问（/docs 端点）
-- [ ] 数据库连接正常
-
-**前端（Vercel）**：
-- [ ] Root Directory 设置为 `frontend`
-- [ ] 环境变量已设置（NEXT_PUBLIC_API_URL）
-- [ ] 首次部署成功
-- [ ] 前端可正常访问后端 API
-- [ ] CORS 配置正确
-
-**整体验证**：
-- [ ] 用户注册/登录功能正常
-- [ ] 单词查询功能正常
-- [ ] 收藏功能正常
-- [ ] 查询次数限制生效
-- [ ] 错误日志正常记录
-
-### 常见部署问题
-
-#### 问题 1: Render 构建失败
-
-**错误信息**：`ModuleNotFoundError: No module named 'app'`
-
-**解决方案**：
-```bash
-# 检查 render.yaml 中的 buildCommand
-buildCommand: "pip install pdm && pdm install --prod"
-
-# 确保 pyproject.toml 在正确位置
-```
-
-#### 问题 2: 数据库连接超时
-
-**错误信息**：`asyncpg.exceptions.ConnectionTimeoutError`
-
-**解决方案**：
-1. 检查 DATABASE_URL 环境变量是否正确
-2. 确认数据库服务已启动
-3. 检查网络安全组配置
-
-#### 问题 3: CORS 错误
-
-**错误信息**：`Access-Control-Allow-Origin header is missing`
-
-**解决方案**：
-```bash
-# 在 Render 后端环境变量中设置
-CORS_ORIGINS=https://your-frontend-domain.vercel.app
-
-# 注意：不要包含尾部斜杠
-```
-
-#### 问题 4: Vercel 构建失败
-
-**错误信息**：`MODULE_NOT_FOUND`
-
-**解决方案**：
-1. 检查 Root Directory 是否设置为 `frontend`
-2. 确认 `package.json` 存在于 frontend 目录
-3. 清除 Vercel 构建缓存后重试
-
----
-
-### 已实现的API端点
-
-**单词相关**:
+**已实现的API端点**：
 - POST /api/v1/words/query - 查询单词
 - GET /api/v1/words/query-limit - 获取查询统计
 - GET /api/v1/words/{word_id} - 根据ID获取单词
-
-**收藏相关**:
+- GET /api/v1/words/search/{word_text} - 根据单词文本查询（支持游客）
 - POST /api/v1/favorites - 添加收藏
 - DELETE /api/v1/favorites/{word_id} - 删除收藏
 - GET /api/v1/favorites - 获取收藏列表
 - GET /api/v1/favorites/check/{word_id} - 检查收藏状态
-
-**用户认证**:
-- POST /api/v1/auth/register - 用户注册
-- POST /api/v1/auth/login - 用户登录
-- POST /api/v1/auth/refresh - 刷新令牌
-- POST /api/v1/auth/logout - 用户登出
 
 ---
 
@@ -666,27 +244,16 @@ CORS_ORIGINS=https://your-frontend-domain.vercel.app
 - **表单验证**: Zod 3.22.0
 - **HTTP 客户端**: Axios 1.6.0
 
-### 后端
+### 后端（部分完成）
 - **框架**: FastAPI 0.104+
-- **语言**: Python 3.12+
+- **语言**: Python 3.11+
 - **ORM**: SQLAlchemy 2.0 (异步)
-- **数据库**:
-  - 生产/开发: PostgreSQL 15+ (Docker)
-  - 单元测试: SQLite (内存模式)
-  - 集成测试: PostgreSQL (Docker, 独立测试库)
-- **缓存**: Redis 7+ (Docker)
+- **数据库**: PostgreSQL 15+
 - **认证**: JWT (python-jose) + bcrypt
 - **测试**: pytest + pytest-asyncio
-- **包管理**: PDM
-- **数据库迁移**: Alembic
+- **包管理**: pdm
+- **缓存**: Redis 7+ (待集成)
 - **AI**: OpenAI GPT-3.5-turbo (待集成)
-
-### 基础设施
-- **容器化**: Docker + Docker Compose
-- **数据库**: PostgreSQL 15 Alpine (生产 + 测试环境)
-- **缓存**: Redis 7 Alpine
-- **数据持久化**: Docker Volumes
-- **测试隔离**: 独立测试数据库 (端口5433)
 
 ---
 
@@ -702,11 +269,13 @@ CORS_ORIGINS=https://your-frontend-domain.vercel.app
   - [x] 用户输入单词 → 展示"游戏手册"
   - [x] 收藏夹功能
   - [x] 查询次数限制
-- [x] 后端核心API开发（部分完成 2025-10-15）
+- [x] 后端核心API开发（已完成 2025-10-16）
   - [x] 用户认证系统
   - [x] 单词查询系统
   - [x] 收藏系统
-  - [x] 查询限制系统
+  - [x] 游客模式与限流系统
+  - [x] 数据库设计与迁移
+  - [x] 集成测试（TDD模式）
   - [ ] Redis缓存集成（待完成）
   - [ ] OpenAI AI生成（待完成）
 - [ ] 前后端联调和测试（下一步）

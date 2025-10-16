@@ -3,11 +3,13 @@ FastAPI application entry point
 """
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Any
+import time
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
@@ -25,6 +27,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(
         "Starting ChaiWord Duck API",
         extra={"extra_data": {"version": settings.app_version, "env": settings.app_env}},
+    )
+
+    # Log CORS configuration
+    logger.info(
+        "CORS configuration",
+        extra={
+            "extra_data": {
+                "allowed_origins": settings.cors_origins_list,
+                "allow_credentials": settings.cors_allow_credentials,
+            }
+        },
     )
 
     yield
@@ -51,6 +64,87 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Request logging middleware
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """
+    请求日志中间件
+
+    记录所有HTTP请求的详细信息，包括：
+    - 请求方法、路径、headers
+    - 响应状态码
+    - 处理时间
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        """处理请求并记录日志"""
+        start_time = time.time()
+
+        # 提取请求信息
+        method = request.method
+        path = request.url.path
+        client_host = request.client.host if request.client else "unknown"
+        origin_header = request.headers.get("origin", "no-origin")
+        user_agent = request.headers.get("user-agent", "unknown")
+
+        # 处理请求
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            process_time = time.time() - start_time
+
+            # 构建日志数据
+            log_data = {
+                "method": method,
+                "path": path,
+                "status_code": status_code,
+                "client_host": client_host,
+                "origin": origin_header,
+                "user_agent": user_agent,
+                "process_time_ms": round(process_time * 1000, 2),
+            }
+
+            # 根据状态码确定日志级别并记录
+            if status_code < 400:
+                logger.info(
+                    f"{method} {path} - {status_code}",
+                    extra={"extra_data": log_data},
+                )
+            elif status_code < 500:
+                logger.warning(
+                    f"{method} {path} - {status_code}",
+                    extra={"extra_data": log_data},
+                )
+            else:
+                logger.error(
+                    f"{method} {path} - {status_code}",
+                    extra={"extra_data": log_data},
+                )
+
+            return response
+
+        except Exception as exc:
+            process_time = time.time() - start_time
+            logger.error(
+                f"{method} {path} - Request processing failed",
+                extra={
+                    "extra_data": {
+                        "method": method,
+                        "path": path,
+                        "client_host": client_host,
+                        "origin": origin_header,
+                        "process_time_ms": round(process_time * 1000, 2),
+                        "error": str(exc),
+                    }
+                },
+                exc_info=True,
+            )
+            raise
+
+
+# Add request logging middleware
+app.add_middleware(RequestLoggingMiddleware)
 
 
 # Global exception handlers
@@ -91,9 +185,13 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         ),
     )
 
+    # 准备响应headers（如果异常包含headers，则传递）
+    response_headers = exc.headers if exc.headers is not None else {}
+
     return JSONResponse(
         status_code=exc.status_code,
         content=error_response.model_dump(mode="json"),
+        headers=response_headers,  # 保留原始异常的headers（如WWW-Authenticate）
     )
 
 
@@ -135,6 +233,42 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     return JSONResponse(
         status_code=422,
+        content=error_response.model_dump(mode="json"),
+    )
+
+
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """
+    404错误处理器
+
+    记录所有未匹配的路由请求，帮助诊断路由问题
+    """
+    logger.warning(
+        f"404 Not Found: {request.method} {request.url.path}",
+        extra={
+            "extra_data": {
+                "method": request.method,
+                "path": request.url.path,
+                "query_params": dict(request.query_params),
+                "client_host": request.client.host if request.client else "unknown",
+                "origin": request.headers.get("origin", "no-origin"),
+                "user_agent": request.headers.get("user-agent", "unknown"),
+            }
+        },
+    )
+
+    # 返回统一格式错误响应
+    error_response = ErrorResponse(
+        success=False,
+        error=ErrorDetail(
+            code="NOT_FOUND",
+            message="请求的资源不存在",
+        ),
+    )
+
+    return JSONResponse(
+        status_code=404,
         content=error_response.model_dump(mode="json"),
     )
 

@@ -79,9 +79,9 @@ class Settings(BaseSettings):
     cors_allow_credentials: bool = Field(default=True, description="允许携带凭证")
 
     # 查询限制
-    guest_daily_limit: int = Field(default=1, description="游客每日查询限制")
-    free_user_daily_limit: int = Field(default=3, description="免费用户每日查询限制")
-    premium_user_daily_limit: int = Field(default=999999, description="高级用户每日查询限制")
+    guest_daily_limit: int = Field(default=10, description="游客每日查询限制")
+    free_user_daily_limit: int = Field(default=50, description="免费用户每日查询限制")
+    premium_user_daily_limit: int = Field(default=-1, description="高级用户每日查询限制（-1=无限）")
 
     # 收藏限制
     free_user_favorite_limit: int = Field(default=10, description="免费用户收藏限制")
