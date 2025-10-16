@@ -7,6 +7,7 @@ from app.models.user import User, GuestSession, PasswordResetToken
 from app.models.word import Word
 from app.models.favorite import Favorite
 from app.models.query_log import QueryLog
+from app.models.guest_query_log import GuestQueryLog
 
 __all__ = [
     "User",
@@ -15,4 +16,5 @@ __all__ = [
     "Word",
     "Favorite",
     "QueryLog",
+    "GuestQueryLog",
 ]

@@ -3,6 +3,7 @@
 
 提供FastAPI路由依赖项
 """
+import logging
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
@@ -16,12 +17,15 @@ from app.core.security import decode_access_token
 from app.models.user import User
 from app.schemas.common import ErrorCode
 
-# HTTP Bearer认证
-security = HTTPBearer()
+# 配置日志
+logger = logging.getLogger(__name__)
+
+# HTTP Bearer认证 - auto_error=False允许我们自定义错误处理
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
@@ -30,7 +34,7 @@ async def get_current_user(
     依赖注入函数，用于需要认证的路由
 
     Args:
-        credentials: JWT令牌凭证
+        credentials: JWT令牌凭证（可选）
         db: 数据库会话
 
     Returns:
@@ -39,6 +43,18 @@ async def get_current_user(
     Raises:
         HTTPException: 401 未授权
     """
+    # 检查是否提供了认证凭证
+    if credentials is None:
+        logger.warning("认证失败：请求未包含Authorization header")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": ErrorCode.UNAUTHORIZED,
+                "message": "缺少认证凭证，请提供有效的访问令牌",
+            },
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token = credentials.credentials
 
     # 解码JWT
@@ -46,32 +62,38 @@ async def get_current_user(
         payload = decode_access_token(token)
     except ExpiredSignatureError:
         # Token过期
+        logger.warning("认证失败：访问令牌已过期")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": ErrorCode.TOKEN_EXPIRED,
                 "message": "认证令牌已过期，请重新登录",
             },
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    except JWTError:
+    except JWTError as e:
         # Token无效
+        logger.warning(f"认证失败：无效的访问令牌 - {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": ErrorCode.TOKEN_INVALID,
                 "message": "无效的认证令牌",
             },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # 获取用户ID
     user_id: Optional[int] = payload.get("sub")
     if user_id is None:
+        logger.warning("认证失败：访问令牌中缺少用户ID")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": ErrorCode.TOKEN_INVALID,
                 "message": "令牌中缺少用户ID",
             },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # 查询用户
@@ -79,14 +101,17 @@ async def get_current_user(
     user = result.scalar_one_or_none()
 
     if user is None:
+        logger.warning(f"认证失败：用户ID {user_id} 不存在")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
                 "code": ErrorCode.USER_NOT_FOUND,
                 "message": "用户不存在",
             },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
+    logger.debug(f"用户认证成功：user_id={user_id}, email={user.email}")
     return user
 
 
@@ -153,3 +178,48 @@ async def get_current_premium_user(
         )
 
     return current_user
+
+
+async def get_optional_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """
+    可选认证：获取当前用户（如果已登录）
+
+    支持游客模式的依赖注入函数。
+    - 如果提供了有效token，返回User对象
+    - 如果未提供token或token无效，返回None（游客模式）
+
+    Args:
+        credentials: JWT令牌凭证（可选）
+        db: 数据库会话
+
+    Returns:
+        Optional[User]: User对象或None（游客模式）
+
+    Examples:
+        >>> # 在路由中使用
+        >>> @router.get("/words/query/{word}")
+        >>> async def query_word(
+        ...     word: str,
+        ...     current_user: Optional[User] = Depends(get_optional_user),
+        ... ):
+        ...     if current_user is None:
+        ...         # 游客模式逻辑
+        ...     else:
+        ...         # 注册用户逻辑
+    """
+    if credentials is None:
+        # 游客模式
+        logger.debug("请求未包含认证信息，使用游客模式")
+        return None
+
+    try:
+        # 尝试认证（复用现有逻辑）
+        return await get_current_user(credentials, db)
+    except HTTPException as e:
+        # 认证失败，降级为游客模式
+        logger.warning(f"认证失败，降级为游客模式：{e.detail}")
+        return None
+

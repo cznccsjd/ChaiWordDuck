@@ -2,17 +2,18 @@
 单词查询API路由
 
 实现单词查询、查询限制、根据ID获取单词功能
+支持游客模式（无需登录即可查询）
 """
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_active_user, get_optional_user
 from app.core.logging import get_logger, log_with_context
 from app.models import User, Word, QueryLog
 from app.schemas.common import ErrorCode, SuccessResponse
@@ -22,6 +23,7 @@ from app.schemas.word import (
     QueryLimitInfo,
     WordByIdResponse,
 )
+from app.services.rate_limit import RateLimitService
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -122,16 +124,18 @@ def get_user_daily_limit(user: User) -> int:
 
 async def query_word_internal(
     word_text: str,
-    current_user: User,
+    current_user: Optional[User],
     db: AsyncSession,
+    request: Optional[Request] = None,
 ) -> WordQueryResponse:
     """
-    单词查询内部逻辑（供GET和POST共享）
+    单词查询内部逻辑（供GET和POST共享，支持游客和注册用户）
 
     Args:
         word_text: 要查询的单词
-        current_user: 当前用户
+        current_user: 当前用户（None表示游客）
         db: 数据库会话
+        request: 请求对象（游客模式需要用于获取IP）
 
     Returns:
         WordQueryResponse: 单词查询响应数据
@@ -162,8 +166,11 @@ async def query_word_internal(
             },
         )
 
+    # 记录日志
+    user_info = f"user_id={current_user.id}" if current_user else "guest"
     log_with_context(
-        logger, "info", "Word query attempt", user_id=current_user.id, word=normalized_word
+        logger, "info", "Word query attempt",
+        user_info=user_info, word=normalized_word
     )
 
     # 查询单词
@@ -179,7 +186,7 @@ async def query_word_internal(
             logger,
             "warning",
             "Word not found",
-            user_id=current_user.id,
+            user_info=user_info,
             word=normalized_word,
         )
         raise HTTPException(
@@ -190,61 +197,25 @@ async def query_word_internal(
             },
         )
 
-    today = date.today()
-
-    # 检查是否已查询过该单词
-    already_queried = await check_word_already_queried(db, current_user, word.id, today)
-
-    if not already_queried:
-        # 首次查询，检查查询次数限制
-        used_queries = await get_user_query_count(db, current_user, today)
-        daily_limit = get_user_daily_limit(current_user)
-
-        if used_queries >= daily_limit:
-            log_with_context(
-                logger,
-                "warning",
-                "Query limit exceeded",
-                user_id=current_user.id,
-                used_queries=used_queries,
-                daily_limit=daily_limit,
-            )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "code": ErrorCode.QUERY_LIMIT_EXCEEDED,
-                    "message": f"今日查询次数已用完。游客1次/天，注册用户3次/天",
-                },
-            )
-
-        # 记录查询日志
-        query_log = QueryLog(
-            user_id=current_user.id,
-            word_id=word.id,
-            query_date=today,
-        )
-        db.add(query_log)
-        await db.commit()
-
-        log_with_context(
-            logger,
-            "info",
-            "Query log created",
-            user_id=current_user.id,
-            word_id=word.id,
-        )
+    # 检查查询限制并记录
+    rate_limiter = RateLimitService(db)
+    allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
+        word_id=word.id,
+        user=current_user,
+        request=request,
+    )
 
     # 计算剩余查询次数
-    current_used_queries = await get_user_query_count(db, current_user, today)
-    daily_limit = get_user_daily_limit(current_user)
-    remaining_queries = max(0, daily_limit - current_used_queries)
+    remaining_queries = limit - used if limit != -1 else -1
 
     log_with_context(
         logger,
         "info",
         "Word query successful",
-        user_id=current_user.id,
+        user_info=user_info,
         word_id=word.id,
+        user_type=user_type,
+        used_queries=used,
         remaining_queries=remaining_queries,
     )
 
@@ -271,19 +242,21 @@ async def query_word_internal(
     response_model=SuccessResponse[WordQueryResponse],
     status_code=status.HTTP_200_OK,
     summary="查询单词（GET路径参数）",
-    description="通过URL路径参数查询单词，适用于浏览器和简单HTTP客户端",
+    description="通过URL路径参数查询单词，支持游客模式和注册用户",
 )
 async def query_word_by_path(
     word: str,
-    current_user: User = Depends(get_current_active_user),
+    request: Request,
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessResponse[WordQueryResponse]:
     """
-    查询单词（GET方式）
+    查询单词（GET方式）- 支持游客和注册用户
 
     Args:
         word: 要查询的单词（路径参数）
-        current_user: 当前用户
+        request: 请求对象（用于获取游客IP）
+        current_user: 当前用户（None表示游客）
         db: 数据库会话
 
     Returns:
@@ -293,7 +266,29 @@ async def query_word_by_path(
         HTTPException: 404 单词不存在
         HTTPException: 400 查询次数用尽
     """
-    response_data = await query_word_internal(word, current_user, db)
+    # 记录路由匹配日志
+    user_info = f"user_id={current_user.id}" if current_user else "guest"
+    log_with_context(
+        logger,
+        "info",
+        "GET /query/{word} route matched",
+        user_info=user_info,
+        word_param=word,
+        word_length=len(word),
+    )
+
+    # 检查是否为非预期的路径参数
+    if word in ["contributions", "limit", "health", "docs"]:
+        log_with_context(
+            logger,
+            "warning",
+            "Unexpected word parameter - possible routing issue",
+            user_info=user_info,
+            word_param=word,
+            message="This might be a mismatched route. Check if the intended endpoint exists.",
+        )
+
+    response_data = await query_word_internal(word, current_user, db, request)
     return SuccessResponse(data=response_data)
 
 
@@ -302,19 +297,21 @@ async def query_word_by_path(
     response_model=SuccessResponse[WordQueryResponse],
     status_code=status.HTTP_200_OK,
     summary="查询单词（POST JSON）",
-    description="通过POST JSON body查询单词详细信息，包含拆解数据和查询次数限制",
+    description="通过POST JSON body查询单词，支持游客模式和注册用户",
 )
 async def query_word(
     data: WordQueryRequest,
-    current_user: User = Depends(get_current_active_user),
+    request: Request,
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessResponse[WordQueryResponse]:
     """
-    查询单词（POST方式）
+    查询单词（POST方式）- 支持游客和注册用户
 
     Args:
         data: 查询请求数据
-        current_user: 当前用户
+        request: 请求对象（用于获取游客IP）
+        current_user: 当前用户（None表示游客）
         db: 数据库会话
 
     Returns:
@@ -324,7 +321,7 @@ async def query_word(
         HTTPException: 404 单词不存在
         HTTPException: 400 查询次数用尽
     """
-    response_data = await query_word_internal(data.word, current_user, db)
+    response_data = await query_word_internal(data.word, current_user, db, request)
     return SuccessResponse(data=response_data)
 
 

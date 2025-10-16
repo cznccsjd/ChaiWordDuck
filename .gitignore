@@ -220,3 +220,18 @@ site/
 *.diff
 *.patch
 tsconfig.tsbuildinfo
+nul
+
+# ===========================
+# Claude AI Local Settings
+# ===========================
+.claude/settings.local.json
+
+# ===========================
+# Temporary Task Files
+# ===========================
+*TASK_SUMMARY.md
+*LOGGING_ENHANCEMENT.md
+*QUICK_TEST_COMMANDS.md
+test_logging.bat
+test_logging.sh
