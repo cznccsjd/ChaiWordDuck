@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  db:
+    image: postgres:15-alpine
+    container_name: chaiword_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: chaiword_duck
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chaiword_network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: chaiword_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chaiword_network
+
+  # PostgreSQL 测试数据库（用于集成测试）
+  db_test:
+    image: postgres:15-alpine
+    container_name: chaiword_db_test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: chaiword_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data  # 使用内存存储，测试结束后自动清除
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chaiword_network
+
+  # 后端API服务
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chaiword_api
+    environment:
+      # 数据库配置（使用容器名称）
+      DATABASE_URL: postgresql+asyncpg://postgres:password@chaiword_db:5432/chaiword_duck
+      DATABASE_POOL_SIZE: 20
+      DATABASE_MAX_OVERFLOW: 10
+      DATABASE_ECHO: false
+
+      # Redis配置（使用容器名称）
+      REDIS_URL: redis://chaiword_redis:6379/0
+
+      # 应用配置
+      APP_NAME: ChaiWord Duck API
+      APP_VERSION: 0.1.0
+      APP_ENV: production
+      DEBUG: false
+      HOST: 0.0.0.0
+      PORT: 8000
+
+      # 其他配置...
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production-min-32-chars}
+      LOG_LEVEL: INFO
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - chaiword_network
+    restart: unless-stopped
+
+  # 前端服务（可选）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chaiword_frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - chaiword_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  chaiword_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
