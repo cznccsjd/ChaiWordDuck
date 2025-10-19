@@ -1,20 +1,5 @@
-# ===== Build Stage =====
-FROM python:3.12-slim as builder
-
-# 设置工作目录
-WORKDIR /app
-
-# 安装PDM
-RUN pip install --no-cache-dir pdm
-
-# 复制依赖文件
-COPY pyproject.toml pdm.lock* ./
-
-# 导出依赖到requirements.txt
-RUN pdm export -f requirements --without-hashes --prod -o requirements.txt
-
 # ===== Production Stage =====
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1 \
@@ -36,8 +21,8 @@ RUN apt-get update && \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制requirements.txt并安装Python依赖
-COPY --from=builder /app/requirements.txt .
+# 复制并安装Python依赖（使用pip依赖文件）
+COPY requirements-core.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
