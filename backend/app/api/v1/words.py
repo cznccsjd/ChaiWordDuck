@@ -275,7 +275,7 @@ async def query_word_internal(
             memory_trick=word_data.memory_trick,
             common_mistakes=word_data.common_mistakes or "",
             is_golden=False,
-            source="ai_generated"
+            source="ai"
         )
         db.add(new_word)
         await db.commit()
