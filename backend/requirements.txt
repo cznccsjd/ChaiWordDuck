@@ -82,3 +82,4 @@ uvloop==0.21.0; (sys_platform != "cygwin" and sys_platform != "win32") and platf
 watchfiles==1.1.0
 websockets==14.2
 yarl==1.22.0
+psycopg2-binary
