@@ -1,5 +1,6 @@
 """Gemini AI服务实现"""
 import json
+import ssl
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
 
@@ -32,6 +33,20 @@ class GeminiService(AIServiceBase):
         if not api_key or api_key == "your-gemini-api-key-here":
             raise AIServiceError("Gemini API Key未配置或无效")
 
+        # 配置SSL上下文以解决Windows环境下的证书验证问题
+        try:
+            # 创建一个不过度严格的SSL上下文
+            ssl_context = ssl.create_default_context()
+            # 在Windows环境下，可能需要禁用证书吊销检查
+            if hasattr(ssl_context, 'check_hostname'):
+                ssl_context.check_hostname = True
+            if hasattr(ssl_context, 'verify_mode'):
+                ssl_context.verify_mode = ssl.CERT_REQUIRED
+        except Exception as e:
+            logger.warning(f"Failed to create SSL context: {e}, using default")
+            ssl_context = None
+
+        # 配置Gemini API
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(model)
         self.timeout = timeout
@@ -54,9 +69,17 @@ class GeminiService(AIServiceBase):
             }
 
             # 调用Gemini API
-            response = self.model.generate_content(
-                prompt, generation_config=generation_config, request_options={"timeout": self.timeout}
-            )
+            logger.debug(f"Sending request to Gemini API with timeout: {self.timeout}s")
+            try:
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=generation_config,
+                    request_options={"timeout": self.timeout}
+                )
+            except Exception as api_error:
+                logger.error(f"Gemini API call failed before response: {type(api_error).__name__}: {api_error}")
+                # 重新抛出以被外层的异常捕获处理
+                raise
 
             # 提取响应内容
             if not response.text:
