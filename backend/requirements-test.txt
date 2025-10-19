@@ -1,0 +1,26 @@
+# 拆词鸭后端测试依赖
+# 用于测试环境，包含测试和开发工具
+#
+# 安装命令：
+# pip install -r requirements-test.txt
+#
+# 注意：此文件依赖 requirements-core.txt 中的核心依赖
+
+# 测试框架
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# HTTP测试客户端
+httpx==0.25.1
+
+# 测试数据生成
+faker==20.1.0
+
+# SQLite用于测试
+aiosqlite>=0.21.0
+
+# 代码质量工具
+black==23.11.0
+ruff==0.1.6
+mypy==1.7.1
