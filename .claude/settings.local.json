@@ -35,7 +35,19 @@
       "Read(//d/Documents/workspace/ClaudeCodeProjects/ChaiWordDuck/**)",
       "Bash(pdm run alembic:*)",
       "Bash(pdm run python:*)",
-      "Bash(PGPASSWORD=password psql:*)"
+      "Bash(PGPASSWORD=password psql:*)",
+      "Bash(pdm add:*)",
+      "Bash(test:*)",
+      "Bash(pdm run uvicorn:*)",
+      "Bash(ping:*)",
+      "Bash(pdm export:*)",
+      "Bash(pdm run pytest:*)",
+      "Read(//d/**)",
+      "Bash(telnet:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker:*)",
+      "Bash(env:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
