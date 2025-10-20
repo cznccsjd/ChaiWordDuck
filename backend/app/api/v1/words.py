@@ -25,7 +25,7 @@ from app.schemas.word import (
 )
 from app.services.rate_limit import RateLimitService
 from app.services.ai.factory import AIServiceFactory
-from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError
+from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError, AIParseError
 from app.services.ai_generation_service import AIGenerationService
 
 router = APIRouter()
@@ -318,6 +318,28 @@ async def query_word_internal(
             remaining_queries=remaining_queries,
         )
 
+    except AIParseError as e:
+        log_with_context(
+            logger, "warning", "AI response parsing error",
+            word=normalized_word, error=str(e)
+        )
+        # 判断是否是安全过滤器触发的错误
+        if "安全过滤器" in str(e) or "safety filter" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "CONTENT_SAFETY_BLOCKED",
+                    "message": "该词汇因内容安全政策无法生成，请尝试其他词汇或稍后重试"
+                }
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "AI_PARSE_ERROR",
+                    "message": "AI响应解析失败，请稍后重试"
+                }
+            )
     except AITimeoutError:
         log_with_context(
             logger, "error", "AI generation timeout",
