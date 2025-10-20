@@ -23,7 +23,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # 导入所有模型以便alembic能够检测到
-from app.models import User, GuestSession, PasswordResetToken  # noqa: F401
+from app.models import User, GuestSession, PasswordResetToken, Word, Favorite, QueryLog, GuestQueryLog, AIGenerationLog  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

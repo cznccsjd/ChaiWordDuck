@@ -8,6 +8,7 @@ from app.models.word import Word
 from app.models.favorite import Favorite
 from app.models.query_log import QueryLog
 from app.models.guest_query_log import GuestQueryLog
+from app.models.ai_generation_log import AIGenerationLog
 
 __all__ = [
     "User",
@@ -17,4 +18,5 @@ __all__ = [
     "Favorite",
     "QueryLog",
     "GuestQueryLog",
+    "AIGenerationLog",
 ]
