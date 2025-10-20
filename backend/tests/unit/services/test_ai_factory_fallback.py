@@ -29,15 +29,13 @@ def test_factory_primary_success():
     mock_settings.openai_timeout = 30
 
     with patch("app.services.ai.factory.get_settings", return_value=mock_settings):
-        with patch("google.generativeai.configure"):
-            with patch("google.generativeai.GenerativeModel"):
-                # Get service
-                service = AIServiceFactory.get_service()
+        # Get service
+        service = AIServiceFactory.get_service()
 
-                # Assertions
-                assert service is not None
-                assert isinstance(service, GeminiService)
-                assert AIServiceFactory.get_current_provider() == "gemini"
+        # Assertions
+        assert service is not None
+        assert isinstance(service, GeminiService)
+        assert AIServiceFactory.get_current_provider() == "gemini"
 
 
 def test_factory_fallback_on_primary_failure():
@@ -97,14 +95,12 @@ def test_factory_singleton_pattern():
     mock_settings.openai_timeout = 30
 
     with patch("app.services.ai.factory.get_settings", return_value=mock_settings):
-        with patch("google.generativeai.configure"):
-            with patch("google.generativeai.GenerativeModel"):
-                # Get service twice
-                service1 = AIServiceFactory.get_service()
-                service2 = AIServiceFactory.get_service()
+        # Get service twice
+        service1 = AIServiceFactory.get_service()
+        service2 = AIServiceFactory.get_service()
 
-                # Should be the same instance
-                assert service1 is service2
+        # Should be the same instance
+        assert service1 is service2
 
 
 def test_factory_unsupported_provider():
@@ -135,18 +131,16 @@ def test_factory_reset_instance():
     mock_settings.gemini_timeout = 30
 
     with patch("app.services.ai.factory.get_settings", return_value=mock_settings):
-        with patch("google.generativeai.configure"):
-            with patch("google.generativeai.GenerativeModel"):
-                # Get service
-                service1 = AIServiceFactory.get_service()
-                assert service1 is not None
+        # Get service
+        service1 = AIServiceFactory.get_service()
+        assert service1 is not None
 
-                # Reset
-                AIServiceFactory.reset_instance()
-                assert AIServiceFactory._instance is None
-                assert AIServiceFactory._current_provider is None
+        # Reset
+        AIServiceFactory.reset_instance()
+        assert AIServiceFactory._instance is None
+        assert AIServiceFactory._current_provider is None
 
-                # Get service again (should create new instance)
-                service2 = AIServiceFactory.get_service()
-                assert service2 is not None
-                # Note: Can't compare instances directly as they're recreated
+        # Get service again (should create new instance)
+        service2 = AIServiceFactory.get_service()
+        assert service2 is not None
+        # Note: Can't compare instances directly as they're recreated

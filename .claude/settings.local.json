@@ -47,7 +47,9 @@
       "Bash(docker exec:*)",
       "Bash(docker:*)",
       "Bash(env:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pdm list:*)",
+      "Bash(pdm show:*)"
     ],
     "deny": [],
     "ask": []
