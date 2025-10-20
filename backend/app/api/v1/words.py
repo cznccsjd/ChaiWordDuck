@@ -260,7 +260,7 @@ async def query_word_internal(
         )
 
         ai_service = AIServiceFactory.get_service()
-        word_data = await ai_service.generate_word_manual(normalized_word)
+        word_data = ai_service.generate_word_manual(normalized_word)
 
         # 4. 保存到数据库
         new_word = Word(

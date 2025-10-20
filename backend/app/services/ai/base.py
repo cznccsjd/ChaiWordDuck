@@ -22,7 +22,7 @@ class AIServiceBase(ABC):
     """AI服务抽象基类"""
 
     @abstractmethod
-    async def generate_word_manual(self, word: str) -> WordManualData:
+    def generate_word_manual(self, word: str) -> WordManualData:
         """生成单词学习手册"""
         pass
 
