@@ -93,31 +93,41 @@ class GeminiService(AIServiceBase):
 
                 candidate = response.candidates[0]
 
-                # 检查完成原因
+                # 检查完成原因 - 改进版本，避免过度拦截
                 if hasattr(candidate, 'finish_reason'):
                     finish_reason = candidate.finish_reason
+                    # 明确的安全过滤器情况才抛出错误
                     if finish_reason == 2:  # SAFETY
                         logger.error(f"Gemini内容被安全过滤器阻止，finish_reason={finish_reason}, word: {word}")
                         raise AIParseError("内容被安全过滤器阻止，请稍后重试或尝试其他词汇")
+                    # 明确的token限制情况，记录警告但不抛出错误
                     elif finish_reason == 3:  # MAX_TOKENS
                         logger.warning(f"Gemini响应因token限制被截断，finish_reason={finish_reason}")
-                    elif finish_reason != 1:  # STOP (1)
+                        # 不要抛出错误，继续处理已有的内容
+                    # 其他finish_reason值，记录日志但根据内容情况决定是否抛出错误
+                    elif finish_reason not in [1, 3]:  # 不是STOP或MAX_TOKENS
                         logger.warning(f"Gemini异常结束，finish_reason={finish_reason}")
+                        # 先尝试获取内容，如果内容为空再抛出错误
 
                 # 检查内容
                 if not hasattr(candidate, 'content') or not candidate.content:
                     logger.error("Gemini返回空内容")
                     raise AIParseError("Gemini返回空内容")
 
-                # 安全获取文本 - 修复核心问题
-                if not hasattr(candidate.content, 'parts') or not candidate.content.parts:
-                    logger.error("Gemini返回内容无有效parts")
-                    raise AIParseError("Gemini返回内容无有效parts")
-
+                # 安全获取文本 - 改进版本，支持多种内容格式
                 content = ""
-                for part in candidate.content.parts:
-                    if hasattr(part, 'text') and part.text:
-                        content += part.text
+                if hasattr(candidate, 'content') and candidate.content:
+                    # 尝试多种方式获取内容
+                    if hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                content += part.text
+                    # 尝试直接获取text属性
+                    elif hasattr(candidate.content, 'text') and candidate.content.text:
+                        content = candidate.content.text
+                    # 尝试其他可能的属性
+                    else:
+                        logger.warning(f"无法识别的内容格式: {type(candidate.content)}")
 
                 if not content.strip():
                     logger.error("Gemini返回文本为空")

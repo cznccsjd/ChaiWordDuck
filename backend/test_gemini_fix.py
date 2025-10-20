@@ -1,72 +1,98 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Gemini修复验证脚本
-验证修复后的Gemini API是否正常工作
+测试Gemini服务修复效果
 """
 import asyncio
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
-# 添加项目路径
+# 加载环境变量
+load_dotenv()
+
+# 添加项目根目录到路径
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-async def test_gemini_service():
-    """测试修复后的Gemini服务"""
+from app.services.ai.gemini_service import GeminiService
+from app.services.ai.base import AIParseError, AIServiceError
+
+async def test_gemini_fix():
+    """测试Gemini服务修复效果"""
+    print("=" * 60)
+    print("测试Gemini服务修复效果")
+    print("=" * 60)
+
+    import os
+    api_key = os.getenv("GEMINI_API_KEY", "your-gemini-api-key-here")
+
+    if api_key == "your-gemini-api-key-here":
+        print("错误: GEMINI_API_KEY未配置")
+        return False
+
     try:
-        from app.services.ai.factory import AIServiceFactory
-        from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError
+        # 创建Gemini服务
+        print("初始化Gemini服务...")
+        service = GeminiService(
+            api_key=api_key,
+            model="gemini-1.5-flash",
+            timeout=30
+        )
+        print("✅ Gemini服务初始化成功")
 
-        print("Testing Gemini service after fixes...")
+        # 测试简单的词汇
+        test_words = ["hello", "world", "cat", "dog", "test"]
+        success_count = 0
+        error_count = 0
 
-        # 重置服务实例以重新初始化
-        AIServiceFactory.reset_instance()
+        for word in test_words:
+            print(f"\n🧪 测试词汇: {word}")
+            print("-" * 40)
 
-        # 获取AI服务
-        ai_service = AIServiceFactory.get_service()
-        print(f"AI Service initialized with provider: {AIServiceFactory.get_current_provider()}")
+            try:
+                result = await service.generate_word_manual(word)
+                print(f"✅ 成功生成 {word}")
+                print(f"   核心游戏: {result.core_game[:50]}...")
+                print(f"   记忆技巧: {result.memory_trick[:50]}...")
+                success_count += 1
 
-        # 测试单词生成
-        test_word = "contribution"
-        print(f"Testing word generation for: {test_word}")
+            except AIParseError as e:
+                print(f"⚠️ AIParseError: {e}")
+                error_count += 1
+                # 检查是否是真正的安全过滤器问题
+                if "安全过滤器" in str(e):
+                    print("   -> 这是真正的安全过滤器问题")
+                else:
+                    print("   -> 这可能是解析问题，需要进一步调试")
 
-        result = await ai_service.generate_word_manual(test_word)
+            except AIServiceError as e:
+                print(f"❌ AIServiceError: {e}")
+                error_count += 1
 
-        print(f"SUCCESS: Word manual generated for '{result.word}'")
-        print(f"Phonetic: {result.phonetic}")
-        print(f"Core game: {result.core_game[:50]}...")
+            except Exception as e:
+                print(f"❌ 未知错误: {type(e).__name__}: {e}")
+                error_count += 1
 
-        return True
+        print(f"\n{'='*60}")
+        print(f"测试结果汇总:")
+        print(f"✅ 成功: {success_count}")
+        print(f"❌ 失败: {error_count}")
+        print(f"📊 成功率: {success_count/(success_count+error_count)*100:.1f}%")
 
-    except AITimeoutError as e:
-        print(f"TIMEOUT ERROR: {e}")
-        return False
-    except AIRateLimitError as e:
-        print(f"RATE LIMIT ERROR: {e}")
-        return False
-    except AIServiceError as e:
-        print(f"AI SERVICE ERROR: {e}")
-        return False
+        if success_count >= len(test_words) * 0.8:
+            print("🎉 修复效果良好！大部分请求都成功了。")
+            return True
+        else:
+            print("⚠️ 修复效果不佳，仍需进一步调试。")
+            return False
+
     except Exception as e:
-        print(f"UNEXPECTED ERROR: {type(e).__name__}: {e}")
+        print(f"❌ 初始化失败: {e}")
         import traceback
         traceback.print_exc()
         return False
 
-async def main():
-    """主函数"""
-    print("Gemini Service Fix Verification")
-    print("=" * 40)
-
-    success = await test_gemini_service()
-
-    if success:
-        print("\n✓ All tests passed! The fix is working correctly.")
-    else:
-        print("\n✗ Tests failed. Further investigation needed.")
-
-    return success
-
 if __name__ == "__main__":
-    result = asyncio.run(main())
+    result = asyncio.run(test_gemini_fix())
     sys.exit(0 if result else 1)
