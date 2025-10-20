@@ -152,6 +152,11 @@ JWT_EXPIRE_MINUTES=1440
 # Redis配置 (可选)
 REDIS_URL=redis://localhost:6379/0
 
+# Gemini AI配置 (推荐)
+GEMINI_API_KEY=your-gemini-key-here
+GEMINI_MODEL=gemini-2.5-flash        # 使用新版模型支持结构化输出
+GEMINI_TIMEOUT=30
+
 # OpenAI配置 (可选)
 OPENAI_API_KEY=sk-...
 
@@ -370,6 +375,29 @@ pdm run pytest
 ```bash
 pdm add bcrypt==4.1.2
 ```
+
+## 变更记录
+
+### 2025-10-21 - Gemini AI服务升级
+
+**重要升级**: Gemini AI服务已升级到新的 `google-genai` SDK 和 `gemini-2.5-flash` 模型
+
+**变更内容**:
+- 📦 升级依赖：移除 `google-generativeai`，使用新版 `google-genai>=1.2.0`
+- 🏗️ 结构化输出：添加 `gemini_schemas.py` 定义严格的JSON输出Schema
+- 📋 模型升级：支持 `gemini-2.5-flash` 原生结构化输出功能
+- 🔄 备份机制：原实现备份为 `gemini_service_old.py`
+
+**技术优势**:
+- ✅ **原生结构化输出**：无需手动JSON解析，减少格式错误
+- ✅ **更高稳定性**：新版SDK改进了错误处理和连接管理
+- ✅ **更佳性能**：`gemini-2.5-flash` 响应速度更快
+- ✅ **严格Schema**：预定义Schema确保输出格式一致性
+
+**下一步计划**:
+- 🎯 第二阶段：重构 `gemini_service.py` 使用新的结构化输出API
+- 🎯 第三阶段：更新错误处理和异常映射
+- 🎯 第四阶段：集成测试和性能验证
 
 ## 文档
 
