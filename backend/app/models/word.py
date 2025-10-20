@@ -26,8 +26,8 @@ class Word(Base):
 
     # 基本信息
     word: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
-    phonetic: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    part_of_speech: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    phonetic: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    part_of_speech: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # 核心内容（拆词鸭特色）
     core_game: Mapped[str] = mapped_column(Text, nullable=False)  # 核心游戏
@@ -43,7 +43,7 @@ class Word(Base):
         Boolean, nullable=False, default=False, server_default="false"
     )  # 是否黄金手册
     source: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="ai", server_default="ai"
+        String(50), nullable=False, default="ai", server_default="ai"
     )  # 来源: ai or manual
 
     # 时间戳

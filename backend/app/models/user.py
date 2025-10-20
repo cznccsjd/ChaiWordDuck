@@ -30,7 +30,7 @@ class User(Base):
 
     # 会员信息
     membership_tier: Mapped[str] = mapped_column(
-        String(20),
+        String(50),
         nullable=False,
         default="free",
         server_default="free",
