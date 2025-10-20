@@ -1,6 +1,7 @@
 """Gemini AI服务实现"""
 import json
 import ssl
+import asyncio
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
 
@@ -73,14 +74,25 @@ class GeminiService(AIServiceBase):
             logger.info(f"Gemini API配置 - model: {self.model._model_name}, timeout: {self.timeout}s")
             logger.debug(f"Sending request to Gemini API with timeout: {self.timeout}s")
             try:
-                response = self.model.generate_content(
-                    prompt,
-                    generation_config=generation_config,
-                    request_options={"timeout": self.timeout}
+                # 添加网络超时保护，使用asyncio.wait_for
+                response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self.model.generate_content,
+                        prompt,
+                        generation_config=generation_config,
+                        request_options={"timeout": self.timeout}
+                    ),
+                    timeout=self.timeout + 10  # 额外10秒缓冲
                 )
                 logger.info(f"Gemini API响应接收成功 - candidates: {len(response.candidates) if response.candidates else 0}")
+            except asyncio.TimeoutError:
+                logger.error(f"Gemini API network timeout after {self.timeout + 10}s for word: {word}")
+                raise AITimeoutError(f"网络请求超时，请检查网络连接后重试")
             except Exception as api_error:
                 logger.error(f"Gemini API call failed before response: {type(api_error).__name__}: {api_error}")
+                # 检查是否是网络连接问题
+                if "connection" in str(api_error).lower() or "network" in str(api_error).lower():
+                    raise AIServiceError("无法连接到Google API，请检查网络连接或使用代理")
                 # 重新抛出以被外层的异常捕获处理
                 raise
 

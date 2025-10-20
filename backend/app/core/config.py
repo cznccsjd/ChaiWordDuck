@@ -3,6 +3,7 @@
 
 使用pydantic-settings管理环境变量配置
 """
+import os
 from functools import lru_cache
 from typing import List, Union
 
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     """应用配置类"""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
