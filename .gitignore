@@ -191,11 +191,33 @@ coverage/
 # ===========================
 # Project Specific
 # ===========================
-# API keys and secrets
+# API keys and secrets (HIGH PRIORITY SECURITY)
 secrets/
 *.key
 *.pem
 credentials.json
+*.api
+api_keys.txt
+secrets.txt
+config/secrets/
+**/config/secrets/
+
+# Prevent any test files containing API keys or credentials
+**/test_*_api.py
+**/test_*_keys.py
+**/test_*_secrets.py
+**/test_*_credentials.py
+
+# Prevent any files with "API" in the name from being committed (review manually)
+**/test_*api*.py
+**/config_api*.py
+**/api_config*.py
+**/api_keys*.py
+**/gemini_api*.py
+
+# Environment files containing sensitive data
+.env.*
+!.env.example
 
 # Local development files
 .local/
