@@ -38,7 +38,7 @@ export async function queryWord(word: string): Promise<WordManual> {
       common_mistakes: apiData.commonMistakes,
       memory_trick: apiData.memoryTrick,
       is_golden: apiData.isGolden,
-      created_at: apiData.createdAt,
+      created_at: apiData.created_at,
     };
 
     console.log('API: 映射后的snake_case数据:', mappedData);
@@ -96,7 +96,7 @@ export async function getWordById(wordId: number): Promise<WordManual> {
       common_mistakes: apiData.commonMistakes,
       memory_trick: apiData.memoryTrick,
       is_golden: apiData.isGolden,
-      created_at: apiData.createdAt,
+      created_at: apiData.created_at,
     };
 
     console.log('API: 映射后的snake_case数据:', mappedData);

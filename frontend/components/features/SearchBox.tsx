@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { useToast } from '@/components/ui';
+import { ErrorDisplay } from '@/components/ui/ErrorDisplay';
 import { queryWord } from '@/lib/api/words';
+import { ERROR_CODES } from '@/lib/api/client';
 
 interface SearchBoxProps {
   remainingQueries?: number;
@@ -23,9 +25,13 @@ export function SearchBox({
   const { showToast } = useToast();
   const [word, setWord] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 清除之前的错误
+    setSearchError(null);
 
     // 验证输入
     const trimmedWord = word.trim().toLowerCase();
@@ -43,12 +49,9 @@ export function SearchBox({
     // 检查是否有剩余次数
     if (remainingQueries <= 0) {
       if (isGuest) {
-        showToast('今日体验次数已用完，注册可获得3次/天', 'error');
-        setTimeout(() => {
-          router.push('/register');
-        }, 1500);
+        setSearchError('🦆 游客体验次数已用完！\n注册账号可享受每天3次免费查询，还能收藏喜欢的单词哦！');
       } else {
-        showToast('今日查询次数已用完，明天再来或升级高级版', 'error');
+        setSearchError('📚 今日查询次数已用完！\n明天会自动重置，或升级高级版享受无限查询权限～');
       }
       return;
     }
@@ -73,10 +76,25 @@ export function SearchBox({
       router.push(`/word/${wordData.id}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '查询失败，请稍后重试';
-      showToast(errorMessage, 'error');
+
+      // 对于429错误使用ErrorDisplay组件显示，其他错误使用toast
+      if (errorMessage.includes('次数已用完') || errorMessage.includes('体验次数已用完')) {
+        setSearchError(errorMessage);
+      } else {
+        showToast(errorMessage, 'error');
+      }
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleRetry = () => {
+    setSearchError(null);
+    handleSearch(new Event('submit') as any);
+  };
+
+  const handleDismissError = () => {
+    setSearchError(null);
   };
 
   return (
@@ -125,6 +143,18 @@ export function SearchBox({
           )}
         </Button>
       </form>
+
+      {/* 错误显示区域 */}
+      {searchError && (
+        <div className="mt-4">
+          <ErrorDisplay
+            message={searchError}
+            onRetry={remainingQueries > 0 ? handleRetry : undefined}
+            onDismiss={handleDismissError}
+            type={searchError.includes('已用完') ? 'warning' : 'error'}
+          />
+        </div>
+      )}
 
       {/* 查询次数提示 */}
       <div className="mt-4 text-center">

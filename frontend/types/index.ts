@@ -55,6 +55,21 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+// 新的API错误响应格式
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+  };
+}
+
+// 旧版API错误响应格式（向后兼容）
+export interface LegacyErrorResponse {
+  detail?: string;
+  message?: string;
+}
+
 // 后端API返回的原始WordManual数据结构（camelCase）
 export interface WordManualApiResponse {
   id: number;

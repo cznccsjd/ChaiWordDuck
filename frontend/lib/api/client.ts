@@ -43,11 +43,6 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
-// 辅助函数：处理 API 错误
-export function handleApiError(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<{ detail?: string; message?: string }>;
-    return axiosError.response?.data?.detail || axiosError.response?.data?.message || '请求失败，请稍后重试';
-  }
-  return '未知错误，请稍后重试';
-}
+// 导出错误处理相关功能
+export { handleApiError, ERROR_CODES } from './errorHandling';
+export type { ApiErrorResponse, LegacyErrorResponse } from './errorHandling';
