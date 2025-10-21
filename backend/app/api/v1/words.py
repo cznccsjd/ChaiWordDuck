@@ -511,19 +511,19 @@ async def get_query_limit(
     response_model=SuccessResponse[WordByIdResponse],
     status_code=status.HTTP_200_OK,
     summary="根据ID获取单词",
-    description="根据单词ID获取详细信息，不计入查询次数（用于复习和收藏列表）",
+    description="根据单词ID获取详细信息，不计入查询次数（支持游客模式和注册用户）",
 )
 async def get_word_by_id(
     word_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ) -> SuccessResponse[WordByIdResponse]:
     """
-    根据ID获取单词
+    根据ID获取单词（支持游客和注册用户）
 
     Args:
         word_id: 单词ID
-        current_user: 当前用户
+        current_user: 当前用户（None表示游客）
         db: 数据库会话
 
     Returns:
@@ -532,8 +532,9 @@ async def get_word_by_id(
     Raises:
         HTTPException: 404 单词不存在
     """
+    user_info = f"user_id={current_user.id}" if current_user else "guest"
     log_with_context(
-        logger, "info", "Get word by ID", user_id=current_user.id, word_id=word_id
+        logger, "info", "Get word by ID", user_info=user_info, word_id=word_id
     )
 
     # 查询单词
@@ -542,7 +543,7 @@ async def get_word_by_id(
 
     if not word:
         log_with_context(
-            logger, "warning", "Word not found by ID", word_id=word_id
+            logger, "warning", "Word not found by ID", user_info=user_info, word_id=word_id
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -556,7 +557,7 @@ async def get_word_by_id(
         logger,
         "info",
         "Word retrieved by ID",
-        user_id=current_user.id,
+        user_info=user_info,
         word_id=word.id,
     )
 
