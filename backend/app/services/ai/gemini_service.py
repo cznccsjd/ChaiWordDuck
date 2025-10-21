@@ -1,5 +1,6 @@
 """Gemini AI服务实现 - 使用新版google-genai SDK"""
 import json
+import re
 from google import genai
 from google.genai.errors import APIError
 from google.genai.types import Schema, Type
@@ -128,9 +129,12 @@ class GeminiService(AIServiceBase):
     def _parse_response(self, response: str) -> WordManualData:
         """解析AI返回的JSON - 新版SDK应该直接返回有效JSON"""
         try:
+            # 清理响应中的无效Unicode代理对字符
+            cleaned_response = self._clean_invalid_unicode(response.strip())
+
             # 新版SDK使用结构化输出时，应该直接返回有效JSON
             # 不再需要去除Markdown代码块等处理
-            data = json.loads(response.strip())
+            data = json.loads(cleaned_response)
 
             # 验证并创建数据模型
             return WordManualData(**data)
@@ -141,3 +145,26 @@ class GeminiService(AIServiceBase):
         except Exception as e:
             logger.error(f"Parse error: {e}, response: {response[:500]}")
             raise AIParseError(f"数据解析失败: {str(e)}")
+
+    def _clean_invalid_unicode(self, text: str) -> str:
+        """
+        清理文本中的无效Unicode代理对字符
+
+        Args:
+            text: 原始文本
+
+        Returns:
+            str: 清理后的文本
+        """
+        if not text:
+            return text
+
+        # 移除无效的代理对字符 (U+DC80-U+DFFF)
+        cleaned = re.sub(r'[\udc80-\udfff]', '', text)
+
+        # 记录清理统计
+        if len(cleaned) != len(text):
+            removed_count = len(text) - len(cleaned)
+            logger.info(f"Cleaned {removed_count} invalid surrogate characters from AI response")
+
+        return cleaned

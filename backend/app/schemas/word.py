@@ -5,8 +5,29 @@
 """
 from datetime import datetime
 from typing import Optional, List
+import re
 
 from pydantic import BaseModel, Field, field_validator
+
+# ============= Unicode Utilities =============
+
+
+def clean_invalid_unicode(text: str) -> str:
+    """
+    清理文本中的无效Unicode代理对字符
+
+    Args:
+        text: 原始文本
+
+    Returns:
+        str: 清理后的文本
+    """
+    if not text:
+        return text
+
+    # 移除无效的代理对字符 (U+DC80-U+DFFF)
+    cleaned = re.sub(r'[\udc80-\udfff]', '', text)
+    return cleaned
 
 
 # ============= Request Models =============
@@ -61,9 +82,24 @@ class WordDetail(BaseModel):
     # 时间戳
     created_at: datetime = Field(..., description="创建时间", alias="createdAt")
 
+    def model_dump(self, **kwargs) -> dict:
+        """重写模型序列化方法，确保默认使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump(**kwargs)
+
+    def model_dump_json(self, **kwargs) -> str:
+        """重写JSON序列化方法，确保使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump_json(**kwargs)
+
     class Config:
         from_attributes = True
         populate_by_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 
 class WordQueryResponse(BaseModel):
@@ -89,9 +125,34 @@ class WordQueryResponse(BaseModel):
     # 查询限制信息
     remaining_queries: int = Field(..., description="今日剩余查询次数", alias="remainingQueries")
 
+    @field_validator('phonetic', 'part_of_speech', 'core_game', 'scenario_formal',
+                   'scenario_casual', 'etymology_breakdown', 'etymology_story',
+                   'common_mistakes', 'memory_trick', mode='before')
+    @classmethod
+    def clean_unicode_fields(cls, v):
+        """清理所有文本字段中的无效Unicode字符"""
+        if isinstance(v, str):
+            return clean_invalid_unicode(v)
+        return v
+
+    def model_dump(self, **kwargs) -> dict:
+        """重写模型序列化方法，确保默认使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump(**kwargs)
+
+    def model_dump_json(self, **kwargs) -> str:
+        """重写JSON序列化方法，确保使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump_json(**kwargs)
+
     class Config:
         from_attributes = True
         populate_by_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 
 class QueryLimitInfo(BaseModel):
@@ -101,6 +162,18 @@ class QueryLimitInfo(BaseModel):
     remaining_queries: int = Field(..., description="剩余查询次数", alias="remainingQueries")
     used_queries: int = Field(..., description="已使用查询次数", alias="usedQueries")
     queried_words: List[int] = Field(..., description="已查询单词ID列表", alias="queriedWords")
+
+    def model_dump(self, **kwargs) -> dict:
+        """重写模型序列化方法，确保默认使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump(**kwargs)
+
+    def model_dump_json(self, **kwargs) -> str:
+        """重写JSON序列化方法，确保使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump_json(**kwargs)
 
     class Config:
         populate_by_name = True
@@ -129,6 +202,31 @@ class WordByIdResponse(BaseModel):
     # 时间戳
     created_at: datetime = Field(..., description="创建时间", alias="createdAt")
 
+    @field_validator('phonetic', 'part_of_speech', 'core_game', 'scenario_formal',
+                   'scenario_casual', 'etymology_breakdown', 'etymology_story',
+                   'common_mistakes', 'memory_trick', mode='before')
+    @classmethod
+    def clean_unicode_fields(cls, v):
+        """清理所有文本字段中的无效Unicode字符"""
+        if isinstance(v, str):
+            return clean_invalid_unicode(v)
+        return v
+
+    def model_dump(self, **kwargs) -> dict:
+        """重写模型序列化方法，确保默认使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump(**kwargs)
+
+    def model_dump_json(self, **kwargs) -> str:
+        """重写JSON序列化方法，确保使用别名"""
+        if 'by_alias' not in kwargs:
+            kwargs['by_alias'] = True
+        return super().model_dump_json(**kwargs)
+
     class Config:
         from_attributes = True
         populate_by_name = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
