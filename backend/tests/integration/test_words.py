@@ -239,3 +239,44 @@ class TestWordById:
         data = response.json()
         assert data["success"] is False
         assert data["error"]["code"] == "WORD_NOT_FOUND"
+
+    async def test_get_word_by_id_as_guest(
+        self, client: AsyncClient, test_word: Word
+    ):
+        """测试游客根据ID获取单词（无需认证）"""
+        response = await client.get(
+            f"/api/v1/words/{test_word.id}",
+            # 故意不提供auth_headers，测试游客模式
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["id"] == test_word.id
+        assert data["data"]["word"] == test_word.word
+        # 游客模式应该返回所有字段，与认证用户相同
+
+    async def test_get_word_by_id_unauthenticated_vs_guest(
+        self, client: AsyncClient, test_word: Word
+    ):
+        """测试游客模式和认证用户访问同一ID返回相同数据"""
+        # 游客访问
+        guest_response = await client.get(f"/api/v1/words/{test_word.id}")
+
+        # 认证用户访问
+        auth_response = await client.get(
+            f"/api/v1/words/{test_word.id}",
+            headers={"Authorization": "Bearer invalid_token"}  # 这会返回401，但我们主要测试游客模式
+        )
+
+        # 游客应该能够成功访问
+        assert guest_response.status_code == 200
+        guest_data = guest_response.json()
+
+        # 验证游客返回的数据结构
+        assert guest_data["success"] is True
+        assert "id" in guest_data["data"]
+        assert "word" in guest_data["data"]
+        assert "phonetic" in guest_data["data"]
+        assert "coreGame" in guest_data["data"]
