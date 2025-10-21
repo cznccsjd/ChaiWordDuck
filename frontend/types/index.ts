@@ -55,6 +55,23 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+// 后端API返回的原始WordManual数据结构（camelCase）
+export interface WordManualApiResponse {
+  id: number;
+  word: string;
+  phonetic: string;
+  partOfSpeech: string;
+  coreGame: string;
+  scenarioFormal: string;
+  scenarioCasual: string;
+  etymologyBreakdown: string;
+  etymologyStory: string | null;
+  commonMistakes: string;
+  memoryTrick: string;
+  isGolden: boolean;
+  created_at: string;
+}
+
 // 查询限制信息类型
 export interface QueryLimit {
   remaining: number;
