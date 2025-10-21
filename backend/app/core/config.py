@@ -141,7 +141,7 @@ class Settings(BaseSettings):
 
     # CORS配置
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3001",
+        default="http://localhost:3000,http://localhost:3001,https://*.vercel.app",
         description="允许的跨域源（逗号分隔）",
     )
     cors_allow_credentials: bool = Field(default=True, description="允许携带凭证")
