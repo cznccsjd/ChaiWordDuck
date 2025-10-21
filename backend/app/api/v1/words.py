@@ -247,8 +247,8 @@ async def query_word_internal(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
-                "code": "AI_GENERATION_LIMIT_EXCEEDED",
-                "message": "AI生成限额已用完（游客5次/天，注册用户10次/天）"
+                "code": ErrorCode.AI_GENERATION_LIMIT_EXCEEDED,
+                "message": f"AI生成限额已用完（游客{settings.guest_ai_generation_limit}次/天，注册用户{settings.free_user_ai_generation_limit}次/天）。注册用户享有更多额度，或考虑升级到高级版享受无限AI生成服务。"
             }
         )
 
