@@ -6,7 +6,26 @@ export interface User {
   created_at: string;
 }
 
-// 单词手册类型
+// 后端API返回的camelCase格式单词数据
+export interface WordManualApiResponse {
+  id: number;
+  word: string;
+  phonetic?: string;
+  partOfSpeech?: string;
+  coreGame: string;
+  scenarioFormal: string;
+  scenarioCasual: string;
+  etymologyBreakdown: string;
+  etymologyStory?: string;
+  commonMistakes: string;
+  memoryTrick: string;
+  isGolden: boolean;
+  createdAt: string;
+  // 查询单词时额外包含的字段
+  remainingQueries?: number;
+}
+
+// 前端使用的snake_case格式单词数据（保持向后兼容）
 export interface WordManual {
   id: number;
   word: string;

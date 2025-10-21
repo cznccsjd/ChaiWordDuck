@@ -58,21 +58,18 @@ export function SearchBox({
       // 调用API查询单词
       const wordData = await queryWord(trimmedWord);
 
-      // 调试日志：验证数据完整性
-      console.log('API返回的单词数据:', wordData);
-      console.log('单词ID:', wordData.id);
-      console.log('单词名称:', wordData.word);
+      // 验证返回的数据包含有效的ID
+      if (!wordData || !wordData.id) {
+        throw new Error('API返回数据格式错误，缺少单词ID');
+      }
+
+      console.log('SearchBox: 查询成功，单词数据:', wordData);
 
       // 触发回调（用于刷新查询次数）
       onSearch?.();
 
-      // 验证ID有效性后再跳转
-      if (!wordData.id || wordData.id === undefined) {
-        throw new Error('API返回无效的单词ID');
-      }
-
       // 跳转到单词详情页
-      console.log('即将跳转到:', `/word/${wordData.id}`);
+      console.log('SearchBox: 准备跳转到路由:', `/word/${wordData.id}`);
       router.push(`/word/${wordData.id}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '查询失败，请稍后重试';
