@@ -49,7 +49,8 @@
       "Bash(env:*)",
       "WebSearch",
       "Bash(pdm list:*)",
-      "Bash(pdm show:*)"
+      "Bash(pdm show:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

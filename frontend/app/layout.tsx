@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui";
+import { ReactQueryProvider } from "@/lib/react-query/provider";
 
 export const metadata: Metadata = {
   title: "拆词鸭 - ChaiWord Duck",
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="font-sans antialiased">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ReactQueryProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );
