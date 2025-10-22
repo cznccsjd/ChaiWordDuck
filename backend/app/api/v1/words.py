@@ -28,6 +28,7 @@ from app.services.ai.factory import AIServiceFactory
 from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError, AIParseError
 from app.services.ai_generation_service import AIGenerationService
 from app.services.word_cache_service import get_word_cache_service
+from app.core.dependencies import get_rate_limit_service
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -131,6 +132,7 @@ async def query_word_internal(
     current_user: Optional[User],
     db: AsyncSession,
     request: Optional[Request] = None,
+    rate_limiter: RateLimitService = Depends(get_rate_limit_service),
 ) -> WordQueryResponse:
     """
     单词查询内部逻辑（供GET和POST共享，支持游客和注册用户）
@@ -189,7 +191,6 @@ async def query_word_internal(
         )
 
         # 检查查询限制并记录
-        rate_limiter = RateLimitService(db)
         allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
             word_id=cached_word.id,
             user=current_user,
@@ -234,7 +235,6 @@ async def query_word_internal(
         )
 
         # 检查查询限制并记录
-        rate_limiter = RateLimitService(db)
         allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
             word_id=word.id,
             user=current_user,
@@ -346,7 +346,6 @@ async def query_word_internal(
         )
 
         # 6. 检查查询限制并记录
-        rate_limiter = RateLimitService(db)
         allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
             word_id=new_word.id,
             user=current_user,
@@ -447,6 +446,7 @@ async def query_word_by_path(
     request: Request,
     current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
+    rate_limiter: RateLimitService = Depends(get_rate_limit_service),
 ) -> SuccessResponse[WordQueryResponse]:
     """
     查询单词（GET方式）- 支持游客和注册用户
@@ -486,7 +486,7 @@ async def query_word_by_path(
             message="This might be a mismatched route. Check if the intended endpoint exists.",
         )
 
-    response_data = await query_word_internal(word, current_user, db, request)
+    response_data = await query_word_internal(word, current_user, db, request, rate_limiter)
     return SuccessResponse(data=response_data)
 
 
@@ -502,6 +502,7 @@ async def query_word(
     request: Request,
     current_user: Optional[User] = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
+    rate_limiter: RateLimitService = Depends(get_rate_limit_service),
 ) -> SuccessResponse[WordQueryResponse]:
     """
     查询单词（POST方式）- 支持游客和注册用户
@@ -519,7 +520,7 @@ async def query_word(
         HTTPException: 404 单词不存在
         HTTPException: 400 查询次数用尽
     """
-    response_data = await query_word_internal(data.word, current_user, db, request)
+    response_data = await query_word_internal(data.word, current_user, db, request, rate_limiter)
     return SuccessResponse(data=response_data)
 
 
