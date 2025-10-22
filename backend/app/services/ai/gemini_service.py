@@ -3,7 +3,7 @@ import json
 import re
 from google import genai
 from google.genai.errors import APIError
-from google.genai.types import Schema, Type
+from google.genai.types import HttpOptions,Schema, Type
 
 from app.services.ai.base import (
     AIServiceBase,
@@ -36,9 +36,13 @@ class GeminiService(AIServiceBase):
 
         # 创建新版SDK客户端
         try:
-            self.client = genai.Client(api_key=api_key)
             self.model = model
             self.timeout = timeout
+            # 创建 HttpOptions 实例
+            http_opts = HttpOptions(
+                timeout=timeout 
+            )
+            self.client = genai.Client(api_key=api_key, http_options=http_opts)   # 使用http_options设置超时时间
             logger.info(f"Gemini service initialized with model: {model}")
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")

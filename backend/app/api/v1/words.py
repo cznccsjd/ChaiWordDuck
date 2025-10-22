@@ -27,6 +27,7 @@ from app.services.rate_limit import RateLimitService
 from app.services.ai.factory import AIServiceFactory
 from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError, AIParseError
 from app.services.ai_generation_service import AIGenerationService
+from app.services.word_cache_service import get_word_cache_service
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -176,7 +177,49 @@ async def query_word_internal(
         user_info=user_info, word=normalized_word
     )
 
-    # 查询单词
+    # 1. 尝试从缓存获取单词数据
+    cache_service = get_word_cache_service()
+    cached_word = await cache_service.get_cached_word(normalized_word)
+
+    if cached_word:
+        # 缓存命中，直接返回缓存数据
+        log_with_context(
+            logger, "info", "Using cached word data",
+            user_info=user_info, word=normalized_word, word_id=cached_word.id
+        )
+
+        # 检查查询限制并记录
+        rate_limiter = RateLimitService(db)
+        allowed, used, limit, user_type = await rate_limiter.check_and_record_query(
+            word_id=cached_word.id,
+            user=current_user,
+            request=request,
+        )
+
+        # 计算剩余查询次数
+        remaining_queries = limit - used if limit != -1 else -1
+
+        log_with_context(
+            logger,
+            "info",
+            "Word query successful (cache hit)",
+            user_info=user_info,
+            word_id=cached_word.id,
+            user_type=user_type,
+            used_queries=used,
+            remaining_queries=remaining_queries,
+        )
+
+        # 返回缓存数据，更新剩余查询次数
+        cached_word.remaining_queries = remaining_queries
+        return cached_word
+
+    # 2. 缓存未命中，查询数据库
+    log_with_context(
+        logger, "info", "Cache miss, querying database",
+        user_info=user_info, word=normalized_word
+    )
+
     result = await db.execute(
         select(Word)
         .where(Word.word == normalized_word)
@@ -213,7 +256,7 @@ async def query_word_internal(
         )
 
         # 构造响应
-        return WordQueryResponse(
+        word_response = WordQueryResponse(
             id=word.id,
             word=word.word,
             phonetic=word.phonetic,
@@ -228,6 +271,17 @@ async def query_word_internal(
             is_golden=word.is_golden,
             remaining_queries=remaining_queries,
         )
+
+        # 缓存单词数据（异步操作，不阻塞响应）
+        try:
+            await cache_service.cache_word(normalized_word, word_response)
+        except Exception as e:
+            log_with_context(
+                logger, "warning", "Failed to cache word data",
+                word=normalized_word, word_id=word.id, error=str(e)
+            )
+
+        return word_response
 
     # 2. 数据库无数据 → 检查AI生成限额
     log_with_context(
@@ -302,7 +356,8 @@ async def query_word_internal(
         # 计算剩余查询次数
         remaining_queries = limit - used if limit != -1 else -1
 
-        return WordQueryResponse(
+        # 构造响应
+        word_response = WordQueryResponse(
             id=new_word.id,
             word=new_word.word,
             phonetic=new_word.phonetic,
@@ -317,6 +372,17 @@ async def query_word_internal(
             is_golden=False,
             remaining_queries=remaining_queries,
         )
+
+        # 缓存AI生成的单词数据（异步操作，不阻塞响应）
+        try:
+            await cache_service.cache_word(normalized_word, word_response)
+        except Exception as e:
+            log_with_context(
+                logger, "warning", "Failed to cache AI-generated word data",
+                word=normalized_word, word_id=new_word.id, error=str(e)
+            )
+
+        return word_response
 
     except AIParseError as e:
         log_with_context(
@@ -455,6 +521,57 @@ async def query_word(
     """
     response_data = await query_word_internal(data.word, current_user, db, request)
     return SuccessResponse(data=response_data)
+
+
+@router.get(
+    "/cache/stats",
+    response_model=SuccessResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="获取缓存统计信息",
+    description="获取单词缓存的命中率和性能统计数据",
+    include_in_schema=False,  # 内部使用，不对外暴露
+)
+async def get_cache_stats() -> SuccessResponse[dict]:
+    """
+    获取缓存统计信息
+
+    Returns:
+        SuccessResponse: 缓存统计数据
+    """
+    cache_service = get_word_cache_service()
+    stats = cache_service.get_cache_stats()
+
+    log_with_context(
+        logger, "info", "Cache stats requested",
+        cache_stats=stats
+    )
+
+    return SuccessResponse(data=stats)
+
+
+@router.post(
+    "/cache/reset-stats",
+    response_model=SuccessResponse[str],
+    status_code=status.HTTP_200_OK,
+    summary="重置缓存统计",
+    description="重置缓存命中率统计计数器",
+    include_in_schema=False,  # 内部使用，不对外暴露
+)
+async def reset_cache_stats() -> SuccessResponse[str]:
+    """
+    重置缓存统计
+
+    Returns:
+        SuccessResponse: 操作结果
+    """
+    cache_service = get_word_cache_service()
+    cache_service.reset_cache_stats()
+
+    log_with_context(
+        logger, "info", "Cache stats reset"
+    )
+
+    return SuccessResponse(data="Cache statistics reset successfully")
 
 
 @router.get(
