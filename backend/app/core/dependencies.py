@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.redis import get_redis_client
 from app.core.security import decode_access_token
 from app.models.user import User
 from app.schemas.common import ErrorCode
@@ -222,4 +223,30 @@ async def get_optional_user(
         # 认证失败，降级为游客模式
         logger.warning(f"认证失败，降级为游客模式：{e.detail}")
         return None
+
+
+async def get_rate_limit_service(
+    db: AsyncSession = Depends(get_db),
+) -> "RateLimitService":
+    """
+    获取查询限制服务实例
+
+    自动注入Redis客户端（如果可用），提供缓存优化的查询限制功能。
+
+    Args:
+        db: 数据库会话
+
+    Returns:
+        RateLimitService: 查询限制服务实例
+    """
+    from app.services.rate_limit import RateLimitService
+
+    try:
+        # 尝试获取Redis客户端
+        redis_client = await get_redis_client()
+        return RateLimitService(db, redis_client)
+    except Exception as e:
+        # Redis不可用时使用数据库模式
+        logger.warning(f"Redis不可用，查询限制服务将使用数据库模式: {e}")
+        return RateLimitService(db, None)
 

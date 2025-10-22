@@ -2,9 +2,10 @@
 查询限流服务
 
 统一管理游客、注册用户、Premium用户的查询限制逻辑。
+支持Redis缓存优化和数据库降级机制。
 """
 from datetime import date
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Set
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request, HTTPException, status
@@ -14,6 +15,7 @@ from app.models.guest_query_log import GuestQueryLog
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.guest_identifier import GuestIdentifierService
+from app.services.redis_rate_limit import RedisRateLimitService
 from app.schemas.common import ErrorCode
 
 logger = get_logger(__name__)
@@ -31,14 +33,26 @@ class RateLimitService:
     去重逻辑：同一用户同一天查询同一单词，只计1次。
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, redis_client=None):
         """
         初始化限流服务
 
         Args:
             db: 数据库会话
+            redis_client: Redis客户端（可选，用于缓存优化）
         """
         self.db = db
+        self.redis_rate_limit_service = None
+
+        # 如果提供了Redis客户端，初始化Redis限流服务
+        if redis_client is not None:
+            try:
+                self.redis_rate_limit_service = RedisRateLimitService(redis_client)
+                logger.info("Redis查询限制服务已启用")
+            except Exception as e:
+                logger.warning(f"Redis查询限制服务初始化失败，将使用数据库模式: {e}")
+        else:
+            logger.info("未提供Redis客户端，将使用数据库模式")
 
     async def check_and_record_query(
         self,
@@ -48,6 +62,8 @@ class RateLimitService:
     ) -> Tuple[bool, int, int, str]:
         """
         检查查询限制并记录查询日志
+
+        优先使用Redis缓存，失败时自动降级到数据库模式。
 
         Args:
             word_id: 单词ID
@@ -77,6 +93,25 @@ class RateLimitService:
             ... )
             >>> # 返回: (True, 5, 50, "registered")
         """
+        # 优先使用Redis缓存
+        if self.redis_rate_limit_service is not None:
+            try:
+                return await self.redis_rate_limit_service.check_and_record_query(
+                    word_id=word_id,
+                    user=user,
+                    request=request
+                )
+            except HTTPException:
+                # HTTPException需要重新抛出（如超出限制）
+                raise
+            except Exception as e:
+                # Redis异常时记录日志并降级到数据库模式
+                logger.warning(
+                    f"Redis查询限制检查失败，降级到数据库模式: {e}",
+                    extra={"word_id": word_id, "user_id": user.id if user else None}
+                )
+
+        # 降级到数据库模式
         today = date.today()
 
         if user is None:
@@ -298,3 +333,148 @@ class RateLimitService:
             f"已记录用户 {user_id} 查询单词 {word_id} 的日志",
             extra={"user_id": user_id, "word_id": word_id, "query_date": str(query_date)},
         )
+
+    async def get_user_query_stats(
+        self,
+        user_id: Optional[int] = None,
+        identifier: Optional[str] = None,
+        query_date: Optional[date] = None,
+    ) -> Tuple[int, Set[int]]:
+        """
+        获取用户/游客查询统计信息
+
+        优先从Redis获取，失败时从数据库查询。
+
+        Args:
+            user_id: 用户ID（注册用户）
+            identifier: 游客标识（游客）
+            query_date: 查询日期（默认今天）
+
+        Returns:
+            (已查询次数, 已查询单词ID集合)
+        """
+        if query_date is None:
+            query_date = date.today()
+
+        # 优先从Redis获取统计
+        if self.redis_rate_limit_service is not None:
+            try:
+                return await self.redis_rate_limit_service.get_user_query_stats(
+                    user_id=user_id,
+                    identifier=identifier,
+                    query_date=query_date
+                )
+            except Exception as e:
+                logger.warning(f"Redis统计查询失败，降级到数据库: {e}")
+
+        # 从数据库查询统计
+        return await self._get_stats_from_database(user_id, identifier, query_date)
+
+    async def _get_stats_from_database(
+        self,
+        user_id: Optional[int],
+        identifier: Optional[str],
+        query_date: date,
+    ) -> Tuple[int, Set[int]]:
+        """
+        从数据库获取查询统计
+
+        Args:
+            user_id: 用户ID
+            identifier: 游客标识
+            query_date: 查询日期
+
+        Returns:
+            (已查询次数, 已查询单词ID集合)
+        """
+        if user_id is not None:
+            # 注册用户统计
+            count_result = await self.db.execute(
+                select(func.count(func.distinct(QueryLog.word_id)))
+                .where(QueryLog.user_id == user_id)
+                .where(QueryLog.query_date == query_date)
+            )
+            count = count_result.scalar_one()
+
+            words_result = await self.db.execute(
+                select(QueryLog.word_id)
+                .where(QueryLog.user_id == user_id)
+                .where(QueryLog.query_date == query_date)
+            )
+            word_ids = {row[0] for row in words_result.fetchall()}
+
+        elif identifier is not None:
+            # 游客统计
+            count_result = await self.db.execute(
+                select(func.count(func.distinct(GuestQueryLog.word_id)))
+                .where(GuestQueryLog.identifier == identifier)
+                .where(GuestQueryLog.query_date == query_date)
+            )
+            count = count_result.scalar_one()
+
+            words_result = await self.db.execute(
+                select(GuestQueryLog.word_id)
+                .where(GuestQueryLog.identifier == identifier)
+                .where(GuestQueryLog.query_date == query_date)
+            )
+            word_ids = {row[0] for row in words_result.fetchall()}
+
+        else:
+            raise ValueError("必须提供user_id或identifier")
+
+        return count, word_ids
+
+    async def clear_user_cache(
+        self,
+        user_id: Optional[int] = None,
+        identifier: Optional[str] = None,
+        query_date: Optional[date] = None,
+    ):
+        """
+        清除用户/游客查询缓存
+
+        Args:
+            user_id: 用户ID（注册用户）
+            identifier: 游客标识（游客）
+            query_date: 查询日期（默认今天）
+        """
+        if self.redis_rate_limit_service is not None:
+            try:
+                await self.redis_rate_limit_service.clear_user_cache(
+                    user_id=user_id,
+                    identifier=identifier,
+                    query_date=query_date
+                )
+                logger.info(f"已清除Redis查询缓存")
+            except Exception as e:
+                logger.warning(f"清除Redis缓存失败: {e}")
+
+    async def health_check(self) -> dict:
+        """
+        查询限制服务健康检查
+
+        Returns:
+            健康状态信息
+        """
+        status = {
+            "database": True,
+            "redis": False,
+            "cache_enabled": self.redis_rate_limit_service is not None
+        }
+
+        # 检查数据库连接
+        try:
+            await self.db.execute("SELECT 1")
+        except Exception as e:
+            status["database"] = False
+            logger.error(f"数据库健康检查失败: {e}")
+
+        # 检查Redis连接
+        if self.redis_rate_limit_service is not None:
+            try:
+                status["redis"] = await self.redis_rate_limit_service.health_check()
+            except Exception as e:
+                status["redis"] = False
+                logger.error(f"Redis健康检查失败: {e}")
+
+        return status
