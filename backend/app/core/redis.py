@@ -33,9 +33,16 @@ async def get_redis_client() -> Redis:
     """
     global _redis_client, _redis_pool
 
+    logger.info(f"get_redis_client called. Current client exists: {_redis_client is not None}")
+
     if _redis_client is None:
+        logger.info(
+            f"初始化Redis客户端 - URL: {settings.redis_url}, 密码已提供: {'是' if settings.redis_password else '否'}"
+        )
+
         try:
             # 创建连接池
+            logger.info("Creating Redis connection pool...")
             _redis_pool = ConnectionPool.from_url(
                 settings.redis_url,
                 password=settings.redis_password if settings.redis_password else None,
@@ -47,26 +54,30 @@ async def get_redis_client() -> Redis:
                 socket_keepalive_options={},  # TCP keepalive选项
                 health_check_interval=30,  # 健康检查间隔
             )
+            logger.info("Redis connection pool created successfully")
 
             # 创建Redis客户端
+            logger.info("Creating Redis client...")
             _redis_client = Redis(connection_pool=_redis_pool)
+            logger.info("Redis client created successfully")
 
             # 测试连接
-            await _redis_client.ping()
+            logger.info("Testing Redis connection with PING...")
+            result = await _redis_client.ping()
+            logger.info(f"Redis PING successful: {result}")
 
             logger.info(
-                "Redis client initialized successfully",
-                redis_url=settings.redis_url,
-                max_connections=20
+                f"Redis客户端初始化成功 - URL: {settings.redis_url}, 最大连接数: 20, PING结果: {result}"
             )
 
         except Exception as e:
             logger.error(
-                "Failed to initialize Redis client",
-                error=str(e),
-                redis_url=settings.redis_url
+                f"Redis客户端初始化失败 - 错误: {str(e)}, URL: {settings.redis_url}, 错误类型: {type(e).__name__}"
             )
             raise Exception(f"Redis连接失败: {str(e)}")
+
+    else:
+        logger.debug("Using existing Redis client")
 
     return _redis_client
 
@@ -143,7 +154,7 @@ class RedisService:
             value = await client.get(key)
             return value
         except Exception as e:
-            self.logger.error("Redis GET operation failed", key=key, error=str(e))
+            self.logger.error(f"Redis GET操作失败 - 键: {key}, 错误: {str(e)}")
             return None
 
     async def safe_setex(self, key: str, ttl: int, value: str) -> bool:
@@ -163,7 +174,7 @@ class RedisService:
             result = await client.setex(key, ttl, value)
             return bool(result)
         except Exception as e:
-            self.logger.error("Redis SETEX operation failed", key=key, ttl=ttl, error=str(e))
+            self.logger.error(f"Redis SETEX操作失败 - 键: {key}, TTL: {ttl}, 错误: {str(e)}")
             return False
 
     async def safe_delete(self, key: str) -> bool:
@@ -181,7 +192,7 @@ class RedisService:
             result = await client.delete(key)
             return True  # 即使键不存在也认为操作成功
         except Exception as e:
-            self.logger.error("Redis DELETE operation failed", key=key, error=str(e))
+            self.logger.error(f"Redis DELETE操作失败 - 键: {key}, 错误: {str(e)}")
             return False
 
     async def safe_exists(self, key: str) -> bool:
@@ -199,7 +210,7 @@ class RedisService:
             result = await client.exists(key)
             return bool(result)
         except Exception as e:
-            self.logger.error("Redis EXISTS operation failed", key=key, error=str(e))
+            self.logger.error(f"Redis EXISTS操作失败 - 键: {key}, 错误: {str(e)}")
             return False
 
     async def safe_expire(self, key: str, ttl: int) -> bool:
@@ -218,5 +229,5 @@ class RedisService:
             result = await client.expire(key, ttl)
             return bool(result)
         except Exception as e:
-            self.logger.error("Redis EXPIRE operation failed", key=key, ttl=ttl, error=str(e))
+            self.logger.error(f"Redis EXPIRE操作失败 - 键: {key}, TTL: {ttl}, 错误: {str(e)}")
             return False

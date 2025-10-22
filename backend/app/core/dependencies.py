@@ -241,12 +241,26 @@ async def get_rate_limit_service(
     """
     from app.services.rate_limit import RateLimitService
 
+    logger.info("get_rate_limit_service called, attempting to get Redis client")
+
     try:
         # 尝试获取Redis客户端
+        logger.info("Calling get_redis_client()...")
         redis_client = await get_redis_client()
-        return RateLimitService(db, redis_client)
+        logger.info("Redis client obtained successfully, creating RateLimitService with Redis")
+
+        service = RateLimitService(db, redis_client)
+        logger.info("RateLimitService created with Redis support")
+        return service
+
     except Exception as e:
         # Redis不可用时使用数据库模式
-        logger.warning(f"Redis不可用，查询限制服务将使用数据库模式: {e}")
-        return RateLimitService(db, None)
+        logger.warning(
+            f"Redis不可用，查询限制服务将使用数据库模式 - 错误类型: {type(e).__name__}, 错误信息: {str(e)}, 降级模式: database_only"
+        )
+
+        logger.info("Creating RateLimitService without Redis (database-only mode)")
+        service = RateLimitService(db, None)
+        logger.info("RateLimitService created in database-only mode")
+        return service
 

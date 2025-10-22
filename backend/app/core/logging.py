@@ -36,7 +36,22 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "extra_data"):
             log_data.update(record.extra_data)
 
-        return json.dumps(log_data, ensure_ascii=False)
+        # 确保所有字段都是字符串，避免编码问题
+        try:
+            return json.dumps(log_data, ensure_ascii=False, separators=(',', ':'))
+        except (TypeError, ValueError) as e:
+            # 如果序列化失败，回退到简单格式
+            fallback_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "level": record.levelname,
+                "logger": record.name,
+                "message": str(record.getMessage()),
+                "module": record.module,
+                "function": record.funcName,
+                "line": record.lineno,
+                "serialization_error": str(e)
+            }
+            return json.dumps(fallback_data, ensure_ascii=False, separators=(',', ':'))
 
 
 class TextFormatter(logging.Formatter):
@@ -48,9 +63,29 @@ class TextFormatter(logging.Formatter):
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
+    def format(self, record: logging.LogRecord) -> str:
+        """格式化日志记录，确保中文正确显示"""
+        try:
+            result = super().format(record)
+            # 确保返回的是正确的Unicode字符串
+            return result
+        except Exception as e:
+            # 如果格式化失败，返回基本信息
+            return f"{self.formatTime(record)} - {record.name} - {record.levelname} - FORMATTING_ERROR: {str(e)} - {record.getMessage()}"
+
 
 def setup_logging() -> None:
     """配置应用日志"""
+    import sys
+
+    # 确保正确设置标准输出编码
+    if sys.platform == "win32":
+        # Windows下设置UTF-8编码
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8')
+
     # 获取根日志器
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, settings.log_level.upper()))
@@ -69,6 +104,7 @@ def setup_logging() -> None:
         formatter = TextFormatter()
 
     console_handler.setFormatter(formatter)
+    console_handler.stream.reconfigure(encoding='utf-8') if hasattr(console_handler.stream, 'reconfigure') else None
     root_logger.addHandler(console_handler)
 
     # 设置第三方库日志级别

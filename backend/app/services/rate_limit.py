@@ -464,7 +464,8 @@ class RateLimitService:
 
         # 检查数据库连接
         try:
-            await self.db.execute("SELECT 1")
+            from sqlalchemy import text
+            await self.db.execute(text("SELECT 1"))
         except Exception as e:
             status["database"] = False
             logger.error(f"数据库健康检查失败: {e}")
