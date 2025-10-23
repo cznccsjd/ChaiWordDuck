@@ -1,4 +1,5 @@
 import { useApiQuery, useApiMutation } from '@/lib/react-query/hooks';
+import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
 import { queryWord, getWordById } from '@/lib/api/words';
 import type { WordManual } from '@/types';
@@ -31,14 +32,14 @@ export function useWordById(wordId: number, enabled?: boolean) {
 
 // 预加载单词的hook
 export function usePrefetchWord() {
+  const queryClient = useQueryClient();
+
   return function prefetch(word: string) {
-    return useApiQuery(
-      queryKeys.searchWords(word),
-      () => queryWord(word),
-      {
-        enabled: false, // 只用于预加载，不自动执行
-      }
-    );
+    return queryClient.prefetchQuery({
+      queryKey: queryKeys.searchWords(word),
+      queryFn: () => queryWord(word),
+      staleTime: 10 * 60 * 1000, // 10分钟
+    });
   };
 }
 

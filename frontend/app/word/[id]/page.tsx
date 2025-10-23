@@ -27,29 +27,23 @@ export default function WordDetailPage({ params }: WordDetailPageProps) {
   useEffect(() => {
     const loadWord = async () => {
       setIsLoading(true);
-      console.log('单词详情页 - 接收到的路由参数:', params);
-      console.log('单词详情页 - params.id:', params.id);
 
       try {
         const wordId = parseInt(params.id);
-        console.log('单词详情页 - 转换后的wordId:', wordId);
 
         if (isNaN(wordId)) {
-          console.error('单词ID转换失败:', params.id);
           showToast('无效的单词ID', 'error');
           router.push('/');
           return;
         }
 
         const wordData = await getWordById(wordId);
-        console.log('单词详情页 - 从API获取的数据:', wordData);
         setWord(wordData);
 
         // TODO: 从API获取是否已收藏
         // 暂时设为false
         setIsFavorited(false);
       } catch (error) {
-        console.error('Failed to load word:', error);
         showToast('加载单词失败，请稍后重试', 'error');
         router.push('/');
       } finally {
@@ -58,7 +52,7 @@ export default function WordDetailPage({ params }: WordDetailPageProps) {
     };
 
     loadWord();
-  }, [params.id, router, showToast]);
+  }, [params, router, showToast]);
 
   const handleFavorite = async () => {
     if (!user) {
@@ -87,7 +81,6 @@ export default function WordDetailPage({ params }: WordDetailPageProps) {
         showToast('已收藏', 'success');
       }
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
       showToast(isFavorited ? '取消收藏失败' : '收藏失败', 'error');
     } finally {
       setIsFavoriting(false);
