@@ -300,7 +300,7 @@ test.describe('跨浏览器兼容性测试', () => {
     // 检查Safari特有的渲染特性
     const backdropFilter = await page.locator('body').evaluate((el) => {
       const style = window.getComputedStyle(el);
-      return style.backdropFilter || style.webkitBackdropFilter;
+      return style.backdropFilter || (style as any).webkitBackdropFilter;
     });
     console.log(`Safari backdrop-filter支持:`, !!backdropFilter);
 

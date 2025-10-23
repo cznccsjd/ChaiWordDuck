@@ -76,9 +76,9 @@ class CustomTestReporter {
     }
   }
 
-  onBegin(config: FullConfig, result: FullResult) {
+  onBegin(config: FullConfig) {
     console.log('🚀 开始执行E2E测试...');
-    console.log(`📋 测试文件数量: ${result.specs.length}`);
+    console.log(`📋 测试文件数量: ${config.projects.length}`);
 
     // 清理旧的报告文件
     this.cleanOldReports();
@@ -383,7 +383,7 @@ class CustomTestReporter {
     console.log(`📸 截图数量: ${this.reportData.screenshots.length}`);
     console.log('='.repeat(50));
 
-    if (this.reportData.failed > 0) {
+    if (this.reportData.summary.failed > 0) {
       console.log('\n❌ 失败的测试:');
       this.reportData.tests
         .filter(test => test.status === 'failed')

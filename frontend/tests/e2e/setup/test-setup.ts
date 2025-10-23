@@ -15,6 +15,19 @@ export interface TestFixtures {
 
 // 自定义测试上下文
 export const test = base.extend<TestFixtures>({
+  // 自定义BrowserContext配置
+  context: async ({ browser }, use) => {
+    // 创建带有用户代理的BrowserContext
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    });
+
+    await use(context);
+
+    // 清理context
+    await context.close();
+  },
+
   // 为每个测试创建 helpers 实例
   helpers: async ({ page, context }, use) => {
     const helpers = new TestHelpers(page);
@@ -73,9 +86,6 @@ async function setupTestEnvironment(page: Page, context: BrowserContext) {
  * 配置页面
  */
 async function configurePage(page: Page) {
-  // 设置用户代理
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-
   // 设置时区
   await page.evaluate(() => {
     // 设置为北京时间
