@@ -91,7 +91,7 @@ async def close_redis_client():
             await _redis_client.close()
             logger.info("Redis client closed")
         except Exception as e:
-            logger.error("Error closing Redis client", error=str(e))
+            logger.error(f"Error closing Redis client: {str(e)}")
         finally:
             _redis_client = None
 
@@ -100,7 +100,7 @@ async def close_redis_client():
             await _redis_pool.disconnect()
             logger.info("Redis connection pool closed")
         except Exception as e:
-            logger.error("Error closing Redis connection pool", error=str(e))
+            logger.error(f"Error closing Redis connection pool: {str(e)}")
         finally:
             _redis_pool = None
 
@@ -117,7 +117,7 @@ async def check_redis_health() -> bool:
         await client.ping()
         return True
     except Exception as e:
-        logger.error("Redis health check failed", error=str(e))
+        logger.error(f"Redis health check failed: {str(e)}")
         return False
 
 
@@ -136,7 +136,7 @@ class RedisService:
         try:
             return await get_redis_client()
         except Exception as e:
-            self.logger.error("Failed to get Redis client", error=str(e))
+            self.logger.error(f"Failed to get Redis client: {str(e)}")
             raise
 
     async def safe_get(self, key: str) -> Optional[str]:

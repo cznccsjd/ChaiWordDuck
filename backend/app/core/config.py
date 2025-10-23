@@ -44,6 +44,21 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0", description="Redis连接URL")
     redis_password: str = Field(default="", description="Redis密码")
 
+    @field_validator('redis_url')
+    @classmethod
+    def validate_redis_url(cls, v: str) -> str:
+        """验证Redis URL格式"""
+        if not v:
+            raise ValueError('Redis URL不能为空')
+
+        # 检查URL格式
+        if not (v.startswith('redis://') or v.startswith('rediss://') or v.startswith('unix://')):
+            raise ValueError(
+                f'Redis URL格式无效。必须以redis://、rediss://或unix://开头，当前值: {v}'
+            )
+
+        return v
+
     # JWT配置
     jwt_secret_key: str = Field(
         default="your-secret-key-change-in-production-min-32-chars",
