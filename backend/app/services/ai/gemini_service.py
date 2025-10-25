@@ -13,7 +13,8 @@ from app.services.ai.base import (
     AIRateLimitError,
     AIParseError,
 )
-from app.prompts.word_generation import get_word_generation_prompt
+from app.prompts.manager import get_prompt_manager
+from app.prompts.enums import Language, AIProvider, PromptType
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -66,22 +67,35 @@ class GeminiService(AIServiceBase):
             ]
         )
 
-    def generate_word_manual(self, word: str) -> WordManualData:
-        """生成单词学习手册 - 同步版本"""
+    def generate_word_manual(self, word: str, language: str = Language.CHINESE) -> WordManualData:
+        """生成单词学习手册 - 同步版本
+
+        Args:
+            word: 目标单词
+            language: 语言代码，默认为中文
+
+        Returns:
+            WordManualData: 生成的单词学习手册数据
+        """
         try:
-            logger.info(f"Gemini generating manual for: {word}")
+            logger.info(f"Gemini generating manual for: {word}, language: {language}")
 
-            # 获取Prompt
-            prompt = get_word_generation_prompt(word)
+            # 获取Prompt管理器和渲染模板
+            prompt_manager = get_prompt_manager()
+            system_prompt, user_prompt = prompt_manager.render_prompt(
+                word=word,
+                language=language,
+                provider=AIProvider.GEMINI,
+                prompt_type=PromptType.WORD_GENERATION
+            )
 
-            # 调用Gemini API - 使用新版SDK的同步方法
-            logger.info(f"Gemini API调用开始 - word: {word}, model: {self.model}")
+            logger.info(f"Gemini API调用开始 - word: {word}, language: {language}, model: {self.model}")
 
             response = self.client.models.generate_content(
                 model=self.model,
-                contents=prompt,
+                contents=user_prompt,
                 config=genai.types.GenerateContentConfig(
-                    system_instruction="你是一位专业的英语教学专家，擅长使用'五步语言游戏学习法'帮助学习者记忆长单词。",
+                    system_instruction=system_prompt,
                     response_mime_type="application/json",
                     response_schema=self.response_schema
                 ),

@@ -130,6 +130,7 @@ async def query_word_internal(
     current_user: Optional[User],
     db: AsyncSession,
     request: Optional[Request] = None,
+    language: str = "zh_CN",
 ) -> WordQueryResponse:
     """
     单词查询内部逻辑（供GET和POST共享，支持游客和注册用户）
@@ -139,6 +140,7 @@ async def query_word_internal(
         current_user: 当前用户（None表示游客）
         db: 数据库会话
         request: 请求对象（游客模式需要用于获取IP）
+        language: 语言代码，默认为中文(zh_CN)
 
     Returns:
         WordQueryResponse: 单词查询响应数据
@@ -256,11 +258,11 @@ async def query_word_internal(
     try:
         log_with_context(
             logger, "info", "Triggering AI generation",
-            word=normalized_word
+            word=normalized_word, language=language
         )
 
         ai_service = AIServiceFactory.get_service()
-        word_data = ai_service.generate_word_manual(normalized_word)
+        word_data = ai_service.generate_word_manual(normalized_word, language=language)
 
         # 4. 保存到数据库
         new_word = Word(
@@ -420,7 +422,7 @@ async def query_word_by_path(
             message="This might be a mismatched route. Check if the intended endpoint exists.",
         )
 
-    response_data = await query_word_internal(word, current_user, db, request)
+    response_data = await query_word_internal(word, current_user, db, request, language="zh_CN")
     return SuccessResponse(data=response_data)
 
 
@@ -453,7 +455,7 @@ async def query_word(
         HTTPException: 404 单词不存在
         HTTPException: 400 查询次数用尽
     """
-    response_data = await query_word_internal(data.word, current_user, db, request)
+    response_data = await query_word_internal(data.word, current_user, db, request, language=data.language)
     return SuccessResponse(data=response_data)
 
 

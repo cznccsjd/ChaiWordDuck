@@ -8,7 +8,8 @@ from app.services.ai.base import (
     AIServiceBase, WordManualData,
     AIServiceError, AITimeoutError, AIRateLimitError, AIParseError
 )
-from app.prompts.word_generation import get_word_generation_prompt
+from app.prompts.manager import get_prompt_manager
+from app.prompts.enums import Language, AIProvider, PromptType
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -33,21 +34,39 @@ class OpenAIService(AIServiceBase):
         self.model = model
         logger.info(f"OpenAI service initialized with model: {model}")
 
-    async def generate_word_manual(self, word: str) -> WordManualData:
-        """生成单词学习手册"""
-        try:
-            logger.info(f"OpenAI generating manual for: {word}")
+    async def generate_word_manual(self, word: str, language: str = Language.CHINESE) -> WordManualData:
+        """生成单词学习手册
 
-            prompt = get_word_generation_prompt(word)
+        Args:
+            word: 目标单词
+            language: 语言代码，默认为中文
+
+        Returns:
+            WordManualData: 生成的单词学习手册数据
+        """
+        try:
+            logger.info(f"OpenAI generating manual for: {word}, language: {language}")
+
+            # 获取Prompt管理器和渲染模板
+            prompt_manager = get_prompt_manager()
+            system_prompt, user_prompt = prompt_manager.render_prompt(
+                word=word,
+                language=language,
+                provider=AIProvider.OPENAI,
+                prompt_type=PromptType.WORD_GENERATION
+            )
+
+            # 获取提供商配置
+            provider_config = prompt_manager.get_provider_config(AIProvider.OPENAI)
 
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "你是专业的英语教学专家。"},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.7,
-                max_tokens=2000
+                temperature=provider_config.default_temperature,
+                max_tokens=provider_config.default_max_tokens
             )
 
             content = response.choices[0].message.content

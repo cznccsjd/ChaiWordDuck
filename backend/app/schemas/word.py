@@ -37,6 +37,7 @@ class WordQueryRequest(BaseModel):
     """单词查询请求"""
 
     word: str = Field(..., description="要查询的单词", min_length=1, max_length=100)
+    language: Optional[str] = Field("zh_CN", description="语言代码，默认为中文(zh_CN)")
 
     @field_validator("word")
     @classmethod
@@ -54,6 +55,16 @@ class WordQueryRequest(BaseModel):
             raise ValueError("单词只能包含字母、连字符和空格")
 
         return word.lower()
+
+    @field_validator("language")
+    @classmethod
+    def validate_language(cls, v: str) -> str:
+        """验证语言代码"""
+        supported_languages = ["zh_CN", "en_US"]
+        if v and v not in supported_languages:
+            # 如果语言不支持，默认使用中文
+            return "zh_CN"
+        return v or "zh_CN"
 
 
 # ============= Response Models =============

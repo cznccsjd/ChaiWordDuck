@@ -34,8 +34,16 @@ class AIServiceBase(ABC):
     """AI服务抽象基类"""
 
     @abstractmethod
-    def generate_word_manual(self, word: str) -> WordManualData:
-        """生成单词学习手册"""
+    def generate_word_manual(self, word: str, language: str = "zh_CN") -> WordManualData:
+        """生成单词学习手册
+
+        Args:
+            word: 目标单词
+            language: 语言代码，默认为中文(zh_CN)
+
+        Returns:
+            WordManualData: 生成的单词学习手册数据
+        """
         pass
 
 
