@@ -40,6 +40,14 @@ class User(Base):
     # 邮箱验证
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
+    # 用户偏好设置
+    preferred_language: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="zh_CN",
+        server_default="zh_CN",
+    )
+
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -61,6 +69,10 @@ class User(Base):
         CheckConstraint(
             "membership_tier IN ('free', 'premium')",
             name="check_membership_tier",
+        ),
+        CheckConstraint(
+            "preferred_language IN ('zh_CN', 'en_US')",
+            name="check_preferred_language",
         ),
         Index("idx_users_membership", "membership_tier", "membership_expires_at"),
     )

@@ -145,3 +145,40 @@ class UserProfileResponse(BaseModel):
     continuous_days: int = 0
 
     model_config = {"from_attributes": True}
+
+
+# ========== 用户偏好设置 ==========
+
+
+class UserPreferencesResponse(BaseModel):
+    """用户偏好设置响应"""
+
+    id: int
+    email: str
+    membership_tier: str
+    membership_expires_at: Optional[datetime] = None
+    email_verified: bool
+    preferred_language: str
+    created_at: datetime
+    last_login_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class UserPreferencesUpdateRequest(BaseModel):
+    """用户偏好更新请求"""
+
+    preferred_language: str = Field(..., description="首选语言", examples=["zh_CN", "en_US"])
+
+    @field_validator("preferred_language")
+    @classmethod
+    def validate_language(cls, v: str) -> str:
+        """验证语言代码"""
+        if not v or not v.strip():
+            raise ValueError("preferred_language不能为空")
+
+        v = v.strip()
+        supported_languages = ["zh_CN", "en_US"]
+        if v not in supported_languages:
+            raise ValueError("不支持的语言代码，仅支持: zh_CN, en_US")
+        return v

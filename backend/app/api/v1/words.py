@@ -27,6 +27,8 @@ from app.services.rate_limit import RateLimitService
 from app.services.ai.factory import AIServiceFactory
 from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitError, AIParseError
 from app.services.ai_generation_service import AIGenerationService
+from app.services.user_preferences import get_effective_language
+from app.services.guest_preferences import get_effective_language_for_guest
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -130,7 +132,7 @@ async def query_word_internal(
     current_user: Optional[User],
     db: AsyncSession,
     request: Optional[Request] = None,
-    language: str = "zh_CN",
+    language: Optional[str] = None,
 ) -> WordQueryResponse:
     """
     单词查询内部逻辑（供GET和POST共享，支持游客和注册用户）
@@ -140,7 +142,7 @@ async def query_word_internal(
         current_user: 当前用户（None表示游客）
         db: 数据库会话
         request: 请求对象（游客模式需要用于获取IP）
-        language: 语言代码，默认为中文(zh_CN)
+        language: 语言代码（可选），None表示使用用户偏好或自动检测
 
     Returns:
         WordQueryResponse: 单词查询响应数据
@@ -171,11 +173,21 @@ async def query_word_internal(
             },
         )
 
+    # 确定有效语言
+    if current_user:
+        # 注册用户：使用显式语言参数或用户偏好
+        effective_language = get_effective_language(current_user, language)
+    else:
+        # 游客：使用显式语言参数或根据请求头/Cookie自动检测
+        headers = dict(request.headers) if request else None
+        cookies = dict(request.cookies) if request else None
+        effective_language = get_effective_language_for_guest(headers, cookies, language)
+
     # 记录日志
     user_info = f"user_id={current_user.id}" if current_user else "guest"
     log_with_context(
         logger, "info", "Word query attempt",
-        user_info=user_info, word=normalized_word
+        user_info=user_info, word=normalized_word, language=effective_language
     )
 
     # 查询单词
@@ -258,11 +270,11 @@ async def query_word_internal(
     try:
         log_with_context(
             logger, "info", "Triggering AI generation",
-            word=normalized_word, language=language
+            word=normalized_word, language=effective_language
         )
 
         ai_service = AIServiceFactory.get_service()
-        word_data = ai_service.generate_word_manual(normalized_word, language=language)
+        word_data = ai_service.generate_word_manual(normalized_word, language=effective_language)
 
         # 4. 保存到数据库
         new_word = Word(
@@ -422,7 +434,7 @@ async def query_word_by_path(
             message="This might be a mismatched route. Check if the intended endpoint exists.",
         )
 
-    response_data = await query_word_internal(word, current_user, db, request, language="zh_CN")
+    response_data = await query_word_internal(word, current_user, db, request, language=None)
     return SuccessResponse(data=response_data)
 
 
