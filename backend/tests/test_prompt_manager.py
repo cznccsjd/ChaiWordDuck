@@ -167,15 +167,15 @@ class TestPromptManager:
         """测试模板变量缺失"""
         manager = PromptManager()
 
-        # Mock模板返回缺少占位符的用户提示词
+        # Mock模板返回包含缺失占位符的用户提示词
         with patch.object(manager, 'get_template') as mock_get_template:
             template = MagicMock()
             template.system_prompt = "System prompt"
-            template.user_prompt = "User prompt without word placeholder"  # 移除{word}
+            template.user_prompt = "User prompt with missing {placeholder}"  # 包含一个不存在的占位符
 
             mock_get_template.return_value = (template, MagicMock())
 
-            # 当尝试格式化不包含{word}的模板时，会引发KeyError
+            # 当尝试格式化包含不存在的占位符的模板时，会引发KeyError
             with pytest.raises(KeyError):
                 manager.render_prompt(word="test")
 

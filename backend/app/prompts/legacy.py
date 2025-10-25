@@ -127,7 +127,12 @@ def get_word_generation_prompt(word: str) -> str:
         logger.warning(f"新PromptManager失败，使用降级策略: {e}")
 
         # 降级到原有的模板
-        return WORD_GENERATION_PROMPT.format(word=word)
+        try:
+            return WORD_GENERATION_PROMPT.format(word=word)
+        except KeyError as e:
+            # 如果格式化失败，使用简单的替换策略
+            logger.error(f"降级模板格式化失败: {e}")
+            return WORD_GENERATION_PROMPT.replace("{word}", word)
 
 
 def get_prompt_with_metadata(word: str) -> Dict[str, Any]:
@@ -161,9 +166,15 @@ def get_prompt_with_metadata(word: str) -> Dict[str, Any]:
         logger.error(f"生成Prompt失败: {e}")
 
         # 返回降级结果
+        try:
+            user_prompt = WORD_GENERATION_PROMPT.format(word=word)
+        except KeyError:
+            # 如果格式化失败，使用简单的替换策略
+            user_prompt = WORD_GENERATION_PROMPT.replace("{word}", word)
+
         return {
             "system_prompt": "你是一位专业的英语教学专家。",
-            "user_prompt": WORD_GENERATION_PROMPT.format(word=word),
+            "user_prompt": user_prompt,
             "language": Language.CHINESE,
             "provider": AIProvider.GEMINI,
             "word": word,

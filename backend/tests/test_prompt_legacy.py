@@ -72,7 +72,7 @@ class TestLegacyCompatibility:
         result = get_word_generation_prompt("example")
 
         # 应该降级到原有模板
-        expected = WORD_GENERATION_PROMPT.format(word="example")
+        expected = WORD_GENERATION_PROMPT.replace("{word}", "example")
         assert result == expected
 
     def test_get_prompt_with_metadata_success(self):
@@ -107,7 +107,7 @@ class TestLegacyCompatibility:
         assert result["word"] == "test"
 
         # 验证降级内容
-        assert result["user_prompt"] == WORD_GENERATION_PROMPT.format(word="test")
+        assert result["user_prompt"] == WORD_GENERATION_PROMPT.replace("{word}", "test")
 
     def test_metadata_structure(self):
         """测试元数据结构"""

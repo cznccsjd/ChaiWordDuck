@@ -165,10 +165,7 @@ class PromptManager:
         system_prompt = template.system_prompt.format(**template_vars)
 
         # 渲染用户提示词
-        try:
-            user_prompt = template.user_prompt.format(**template_vars)
-        except KeyError as e:
-            raise ValueError(f"模板变量缺失: {e}")
+        user_prompt = template.user_prompt.format(**template_vars)
 
         return system_prompt, user_prompt
 
