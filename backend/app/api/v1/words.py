@@ -226,20 +226,23 @@ async def query_word_internal(
             remaining_queries=remaining_queries,
         )
 
-        # 构造响应
+        # 使用Word对象的to_api_dict方法获取标准化响应
+        word_dict = word.to_api_dict(include_legacy_fields=True)
+
         return WordQueryResponse(
-            id=word.id,
-            word=word.word,
-            phonetic=word.phonetic,
-            part_of_speech=word.part_of_speech,
-            core_game=word.core_game,
-            scenario_formal=word.scenario_formal,
-            scenario_casual=word.scenario_casual,
-            etymology_breakdown=word.etymology_breakdown,
-            etymology_story=word.etymology_story,
-            common_mistakes=word.common_mistakes,
-            memory_trick=word.memory_trick,
-            is_golden=word.is_golden,
+            id=word_dict["id"],
+            word=word_dict["word"],
+            phonetic=word_dict["phonetic"],
+            part_of_speech=word_dict["part_of_speech"],
+            translation=word_dict.get("translation"),  # 新的多语言字段
+            core_game=word_dict["core_game_content"],  # 兼容字段
+            scenario_formal=word_dict["scenario_formal"],  # 兼容字段
+            scenario_casual=word_dict["scenario_casual"],  # 兼容字段
+            etymology_breakdown=word_dict["etymology_breakdown"],  # 兼容字段
+            etymology_story=word_dict["etymology_story"],  # 兼容字段
+            common_mistakes=word_dict["common_mistakes"],  # 兼容字段
+            memory_trick=word_dict["memory_trick"],
+            is_golden=word_dict["is_golden"],
             remaining_queries=remaining_queries,
         )
 
@@ -276,21 +279,17 @@ async def query_word_internal(
         ai_service = AIServiceFactory.get_service()
         word_data = ai_service.generate_word_manual(normalized_word, language=effective_language)
 
-        # 4. 保存到数据库
-        new_word = Word(
-            word=word_data.word,
-            phonetic=word_data.phonetic or "",
-            part_of_speech=word_data.part_of_speech or "",
-            core_game=word_data.core_game,
-            scenario_formal=word_data.scenario_formal,
-            scenario_casual=word_data.scenario_casual,
-            etymology_breakdown=word_data.etymology_breakdown,
-            etymology_story=word_data.etymology_story or "",
-            memory_trick=word_data.memory_trick,
-            common_mistakes=word_data.common_mistakes or "",
-            is_golden=False,
+        # 4. 使用WordDataConverter转换并保存到数据库
+        from app.models.word_converter import WordDataConverter
+
+        # 将AI响应转换为数据库模型
+        word_dict = WordDataConverter.convert_ai_response_to_word(
+            word_data.model_dump(),  # 转换为字典
+            language_code=effective_language,
             source="ai"
         )
+
+        new_word = Word(**word_dict)
         db.add(new_word)
         await db.commit()
         await db.refresh(new_word)
@@ -316,19 +315,23 @@ async def query_word_internal(
         # 计算剩余查询次数
         remaining_queries = limit - used if limit != -1 else -1
 
+        # 使用Word对象的to_api_dict方法获取标准化响应
+        word_dict = new_word.to_api_dict(include_legacy_fields=True)
+
         return WordQueryResponse(
-            id=new_word.id,
-            word=new_word.word,
-            phonetic=new_word.phonetic,
-            part_of_speech=new_word.part_of_speech,
-            core_game=new_word.core_game,
-            scenario_formal=new_word.scenario_formal,
-            scenario_casual=new_word.scenario_casual,
-            etymology_breakdown=new_word.etymology_breakdown,
-            etymology_story=new_word.etymology_story,
-            common_mistakes=new_word.common_mistakes,
-            memory_trick=new_word.memory_trick,
-            is_golden=False,
+            id=word_dict["id"],
+            word=word_dict["word"],
+            phonetic=word_dict["phonetic"],
+            part_of_speech=word_dict["part_of_speech"],
+            translation=word_dict.get("translation"),  # 新的多语言字段
+            core_game=word_dict["core_game_content"],  # 兼容字段
+            scenario_formal=word_dict["scenario_formal"],  # 兼容字段
+            scenario_casual=word_dict["scenario_casual"],  # 兼容字段
+            etymology_breakdown=word_dict["etymology_breakdown"],  # 兼容字段
+            etymology_story=word_dict["etymology_story"],  # 兼容字段
+            common_mistakes=word_dict["common_mistakes"],  # 兼容字段
+            memory_trick=word_dict["memory_trick"],
+            is_golden=word_dict["is_golden"],
             remaining_queries=remaining_queries,
         )
 

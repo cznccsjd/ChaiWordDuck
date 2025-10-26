@@ -121,6 +121,9 @@ class WordQueryResponse(BaseModel):
     phonetic: Optional[str] = Field(None, description="音标")
     part_of_speech: Optional[str] = Field(None, description="词性", alias="partOfSpeech")
 
+    # 多语言支持
+    translation: Optional[str] = Field(None, description="翻译")
+
     # 核心内容
     core_game: str = Field(..., description="核心游戏", alias="coreGame")
     scenario_formal: str = Field(..., description="思辨场景", alias="scenarioFormal")
