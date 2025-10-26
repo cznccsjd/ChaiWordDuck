@@ -1,26 +1,17 @@
 """AI服务抽象基类和数据模型"""
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Dict, Any
 import re
 from pydantic import BaseModel, field_validator
 
 
-class WordManualData(BaseModel):
-    """单词手册数据模型"""
-    word: str
-    phonetic: Optional[str] = ""
-    part_of_speech: Optional[str] = ""
-    core_game: str
-    scenario_formal: str
-    scenario_casual: str
-    etymology_breakdown: str
-    etymology_story: Optional[str] = ""
-    memory_trick: str
-    common_mistakes: Optional[str] = ""
+class GameBoard(BaseModel):
+    """游戏棋盘数据模型"""
+    type: str
+    name: str
+    example: str
 
-    @field_validator('word', 'phonetic', 'part_of_speech', 'core_game',
-                   'scenario_formal', 'scenario_casual', 'etymology_breakdown',
-                   'etymology_story', 'memory_trick', 'common_mistakes', mode='before')
+    @field_validator('type', 'name', 'example', mode='before')
     @classmethod
     def clean_unicode_fields(cls, v):
         """清理所有文本字段中的无效Unicode字符"""
@@ -28,6 +19,121 @@ class WordManualData(BaseModel):
             # 移除无效的代理对字符 (U+DC80-U+DFFF)
             return re.sub(r'[\udc80-\udfff]', '', v)
         return v
+
+
+class EtymologyBreakdown(BaseModel):
+    """词源拆解数据模型"""
+    prefix: Optional[Dict[str, str]] = None
+    root: Optional[Dict[str, str]] = None
+    suffix: Optional[Dict[str, str]] = None
+
+
+class Etymology(BaseModel):
+    """词源数据模型"""
+    breakdown: EtymologyBreakdown
+    story: str
+
+    @field_validator('story', mode='before')
+    @classmethod
+    def clean_unicode_fields(cls, v):
+        """清理所有文本字段中的无效Unicode字符"""
+        if isinstance(v, str):
+            # 移除无效的代理对字符 (U+DC80-U+DFFF)
+            return re.sub(r'[\udc80-\udfff]', '', v)
+        return v
+
+
+class CoreGame(BaseModel):
+    """核心游戏数据模型"""
+    content: str
+
+    @field_validator('content', mode='before')
+    @classmethod
+    def clean_unicode_fields(cls, v):
+        """清理所有文本字段中的无效Unicode字符"""
+        if isinstance(v, str):
+            # 移除无效的代理对字符 (U+DC80-U+DFFF)
+            return re.sub(r'[\udc80-\udfff]', '', v)
+        return v
+
+
+class CommonMistakes(BaseModel):
+    """常见错误数据模型"""
+    warning: str
+    avoidance: str
+
+    @field_validator('warning', 'avoidance', mode='before')
+    @classmethod
+    def clean_unicode_fields(cls, v):
+        """清理所有文本字段中的无效Unicode字符"""
+        if isinstance(v, str):
+            # 移除无效的代理对字符 (U+DC80-U+DFFF)
+            return re.sub(r'[\udc80-\udfff]', '', v)
+        return v
+
+
+class GameBoards(BaseModel):
+    """游戏棋盘集合数据模型"""
+    board_a_speculative: GameBoard
+    board_b_life: GameBoard
+
+
+class WordManualData(BaseModel):
+    """单词手册数据模型 - 完整嵌套结构"""
+    word: str
+    phonetic: Optional[str] = ""
+    translation: Optional[str] = ""
+    part_of_speech: Optional[str] = ""
+    core_game: CoreGame
+    game_boards: GameBoards
+    etymology: Etymology
+    common_mistakes: CommonMistakes
+    memory_trick: str
+
+    @field_validator('word', 'phonetic', 'translation', 'part_of_speech', 'memory_trick', mode='before')
+    @classmethod
+    def clean_unicode_fields(cls, v):
+        """清理所有文本字段中的无效Unicode字符"""
+        if isinstance(v, str):
+            # 移除无效的代理对字符 (U+DC80-U+DFFF)
+            return re.sub(r'[\udc80-\udfff]', '', v)
+        return v
+
+    # 向后兼容性方法
+    def get_scenario_formal(self) -> str:
+        """向后兼容：从board_a获取正式场景"""
+        return f"{self.game_boards.board_a_speculative.name}：{self.game_boards.board_a_speculative.example}"
+
+    def get_scenario_casual(self) -> str:
+        """向后兼容：从board_b获取日常场景"""
+        return f"{self.game_boards.board_b_life.name}：{self.game_boards.board_b_life.example}"
+
+    def get_etymology_breakdown(self) -> str:
+        """向后兼容：从breakdown获取词源拆解"""
+        parts = []
+        if self.etymology.breakdown.prefix:
+            parts.append(f"前缀：{self.etymology.breakdown.prefix.get('part', '')}（{self.etymology.breakdown.prefix.get('meaning', '')}）")
+        if self.etymology.breakdown.root:
+            parts.append(f"词根：{self.etymology.breakdown.root.get('part', '')}（{self.etymology.breakdown.root.get('meaning', '')}）")
+        if self.etymology.breakdown.suffix:
+            parts.append(f"后缀：{self.etymology.breakdown.suffix.get('part', '')}（{self.etymology.breakdown.suffix.get('meaning', '')}）")
+        return "；".join(parts)
+
+    def get_etymology_story(self) -> str:
+        """向后兼容：获取词源故事"""
+        return self.etymology.story
+
+    def get_core_game_content(self) -> str:
+        """向后兼容：获取核心游戏内容"""
+        return self.core_game.content
+
+    def get_memory_trick(self) -> str:
+        """向后兼容：获取记忆技巧"""
+        return self.memory_trick
+
+    def get_common_mistakes(self) -> str:
+        """向后兼容：获取常见错误"""
+        return f"{self.common_mistakes.warning}。{self.common_mistakes.avoidance}"
 
 
 class AIServiceBase(ABC):

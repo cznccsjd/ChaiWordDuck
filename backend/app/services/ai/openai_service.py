@@ -5,7 +5,8 @@ from openai import AsyncOpenAI
 from openai import OpenAIError, APITimeoutError, RateLimitError
 
 from app.services.ai.base import (
-    AIServiceBase, WordManualData,
+    AIServiceBase, WordManualData, GameBoard, EtymologyBreakdown,
+    Etymology, CoreGame, CommonMistakes, GameBoards,
     AIServiceError, AITimeoutError, AIRateLimitError, AIParseError
 )
 from app.prompts.manager import get_prompt_manager
@@ -87,7 +88,7 @@ class OpenAIService(AIServiceBase):
             raise AIServiceError(f"AI服务错误: {str(e)}")
 
     def _parse_response(self, response: str) -> WordManualData:
-        """解析AI返回的JSON"""
+        """解析AI返回的JSON - 处理嵌套结构"""
         try:
             # 去除可能的Markdown代码块
             json_str = response.strip()
@@ -100,11 +101,54 @@ class OpenAIService(AIServiceBase):
             json_str = json_str.strip()
 
             data = json.loads(json_str)
-            return WordManualData(**data)
+
+            # 记录接收到的数据结构（用于调试）
+            logger.debug(f"OpenAI parsed response structure: {list(data.keys())}")
+
+            # 验证必要的顶层字段
+            required_fields = ["word", "core_game", "game_boards", "etymology", "common_mistakes", "memory_trick"]
+            for field in required_fields:
+                if field not in data:
+                    logger.error(f"Missing required field: {field}")
+                    raise AIParseError(f"响应缺少必要字段: {field}")
+
+            # 验证嵌套结构
+            if not isinstance(data["core_game"], dict) or "content" not in data["core_game"]:
+                logger.error("Invalid core_game structure")
+                raise AIParseError("core_game结构无效")
+
+            if not isinstance(data["game_boards"], dict):
+                logger.error("Invalid game_boards structure")
+                raise AIParseError("game_boards结构无效")
+
+            required_boards = ["board_a_speculative", "board_b_life"]
+            for board in required_boards:
+                if board not in data["game_boards"]:
+                    logger.error(f"Missing required board: {board}")
+                    raise AIParseError(f"game_boards缺少必要棋盘: {board}")
+
+            if not isinstance(data["etymology"], dict):
+                logger.error("Invalid etymology structure")
+                raise AIParseError("etymology结构无效")
+
+            if not isinstance(data["common_mistakes"], dict):
+                logger.error("Invalid common_mistakes structure")
+                raise AIParseError("common_mistakes结构无效")
+
+            # 创建数据模型
+            word_manual = WordManualData(**data)
+
+            # 记录成功解析的详细信息
+            logger.info(f"OpenAI successfully parsed word manual for: {word_manual.word}")
+            logger.debug(f"Word manual structure: core_game={bool(word_manual.core_game)}, "
+                        f"game_boards={bool(word_manual.game_boards)}, "
+                        f"etymology={bool(word_manual.etymology)}")
+
+            return word_manual
 
         except json.JSONDecodeError as e:
-            logger.error(f"JSON parse error: {e}")
+            logger.error(f"JSON parse error: {e}, response: {response[:500]}")
             raise AIParseError(f"AI返回格式错误: {str(e)}")
         except Exception as e:
-            logger.error(f"Parse error: {e}")
+            logger.error(f"Parse error: {e}, response: {response[:500]}")
             raise AIParseError(f"数据解析失败: {str(e)}")

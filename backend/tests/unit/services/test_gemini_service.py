@@ -24,20 +24,51 @@ def test_gemini_service_invalid_key():
 
 
 def test_gemini_generate_word_manual_success():
-    """测试成功生成单词手册"""
-    # Mock response
+    """测试成功生成单词手册 - 新的嵌套结构"""
+    # Mock response with nested structure
     mock_response = Mock()
     mock_response.text = """{
         "word": "test",
         "phonetic": "/test/",
+        "translation": "测试",
         "part_of_speech": "noun",
-        "core_game": "测试游戏",
-        "scenario_formal": "This is a test.",
-        "scenario_casual": "Let's test it!",
-        "etymology_breakdown": "From Latin testum",
-        "etymology_story": "Ancient testing story",
-        "memory_trick": "Remember: test = 测试",
-        "common_mistakes": "Don't confuse with taste"
+        "core_game": {
+            "content": "这是一个验证和确认的语言游戏"
+        },
+        "game_boards": {
+            "board_a_speculative": {
+                "type": "棋盘A (思辨场)",
+                "name": "科学实验场",
+                "example": "在实验中，我们需要对每个假设进行严格的test（测试）以确保结果的准确性。"
+            },
+            "board_b_life": {
+                "type": "棋盘B (生活场)",
+                "name": "健康检查局",
+                "example": "医生建议我每年都要进行一次全面体检，包括各种test（检查）项目。"
+            }
+        },
+        "etymology": {
+            "breakdown": {
+                "prefix": {
+                    "part": "test-",
+                    "meaning": "测试"
+                },
+                "root": {
+                    "part": "test",
+                    "meaning": "验证"
+                },
+                "suffix": {
+                    "part": "",
+                    "meaning": ""
+                }
+            },
+            "story": "来自古法语test，意为'陶罐'，后演变为'检验'的含义，就像检验陶罐的质量一样。"
+        },
+        "common_mistakes": {
+            "warning": "容易与taste混淆",
+            "avoidance": "记住：test是测试，taste是品尝，字母a和e的位置不同"
+        },
+        "memory_trick": "想象一个TEST（考试）正在检验你的知识水平"
     }"""
 
     with patch("google.genai.Client") as mock_client_class:
@@ -52,30 +83,66 @@ def test_gemini_generate_word_manual_success():
         # Test generation
         result = service.generate_word_manual("test")
 
-        # Assertions
+        # Assertions for nested structure
         assert isinstance(result, WordManualData)
         assert result.word == "test"
         assert result.phonetic == "/test/"
-        assert result.core_game == "测试游戏"
+        assert result.translation == "测试"
+        assert result.part_of_speech == "noun"
+
+        # Test nested objects
+        assert result.core_game.content == "这是一个验证和确认的语言游戏"
+        assert result.game_boards.board_a_speculative.name == "科学实验场"
+        assert result.game_boards.board_b_life.name == "健康检查局"
+        assert result.etymology.breakdown.root["part"] == "test"
+        assert result.common_mistakes.warning == "容易与taste混淆"
+        assert result.memory_trick == "想象一个TEST（考试）正在检验你的知识水平"
+
+        # Test backward compatibility
+        assert "科学实验场" in result.get_scenario_formal()
+        assert "健康检查局" in result.get_scenario_casual()
+
         mock_client.models.generate_content.assert_called_once()
 
 
 def test_gemini_generate_word_manual_with_whitespace():
-    """测试解析带空格的JSON响应"""
-    # Mock response with whitespace
+    """测试解析带空格的JSON响应 - 嵌套结构"""
+    # Mock response with whitespace and nested structure
     mock_response = Mock()
     mock_response.text = """
     {
         "word": "test",
         "phonetic": "/test/",
+        "translation": "测试",
         "part_of_speech": "noun",
-        "core_game": "测试游戏",
-        "scenario_formal": "This is a test.",
-        "scenario_casual": "Let's test it!",
-        "etymology_breakdown": "From Latin testum",
-        "etymology_story": "Ancient testing story",
-        "memory_trick": "Remember: test = 测试",
-        "common_mistakes": "Don't confuse with taste"
+        "core_game": {
+            "content": "这是一个验证和确认的语言游戏"
+        },
+        "game_boards": {
+            "board_a_speculative": {
+                "type": "棋盘A (思辨场)",
+                "name": "科学实验场",
+                "example": "在实验中，我们需要对每个假设进行严格的test（测试）以确保结果的准确性。"
+            },
+            "board_b_life": {
+                "type": "棋盘B (生活场)",
+                "name": "健康检查局",
+                "example": "医生建议我每年都要进行一次全面体检，包括各种test（检查）项目。"
+            }
+        },
+        "etymology": {
+            "breakdown": {
+                "prefix": {"part": "test-", "meaning": "测试"},
+                "root": {"part": "test", "meaning": "验证"},
+                "suffix": {"part": "", "meaning": ""}
+            },
+            "story": "来自古法语test，意为'陶罐'，后演变为'检验'的含义。"
+        },
+        "common_mistakes": {
+            "warning": "容易与taste混淆",
+            "avoidance": "记住：test是测试，taste是品尝，字母a和e的位置不同"
+        },
+        "memory_trick": "想象一个TEST（考试）正在检验你的知识水平"
     }
     """
 
@@ -89,6 +156,8 @@ def test_gemini_generate_word_manual_with_whitespace():
 
         assert isinstance(result, WordManualData)
         assert result.word == "test"
+        assert result.translation == "测试"
+        assert result.core_game.content == "这是一个验证和确认的语言游戏"
 
 
 def test_gemini_timeout_error():
@@ -166,12 +235,26 @@ def test_gemini_invalid_json_response():
 
 
 def test_gemini_service_schema_definition():
-    """测试Schema定义正确性"""
+    """测试Schema定义正确性 - 嵌套结构"""
     service = GeminiService(api_key="test_key_123", model="gemini-2.5-flash", timeout=30)
 
     # 检查Schema是否正确定义
     assert service.response_schema is not None
     assert hasattr(service.response_schema, 'properties')
+
+    # 检查新增字段
     assert 'word' in service.response_schema.properties
+    assert 'translation' in service.response_schema.properties
     assert 'core_game' in service.response_schema.properties
-    assert len(service.response_schema.required) == 10
+    assert 'game_boards' in service.response_schema.properties
+    assert 'etymology' in service.response_schema.properties
+    assert 'common_mistakes' in service.response_schema.properties
+
+    # 检查嵌套结构
+    assert service.response_schema.properties['core_game'].type.value == 'OBJECT'
+    assert service.response_schema.properties['game_boards'].type.value == 'OBJECT'
+    assert service.response_schema.properties['etymology'].type.value == 'OBJECT'
+    assert service.response_schema.properties['common_mistakes'].type.value == 'OBJECT'
+
+    # 检查必要字段数量（更新为新结构的字段数）
+    assert len(service.response_schema.required) == 9
