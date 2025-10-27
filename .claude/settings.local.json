@@ -49,7 +49,12 @@
       "Bash(env:*)",
       "WebSearch",
       "Bash(pdm list:*)",
-      "Bash(pdm show:*)"
+      "Bash(pdm show:*)",
+      "Bash(PYTEST_CURRENT_TEST=1 pdm run pytest tests/integration/test_new_multilang_dataflow.py::TestNewArchitectureDataFlow::test_word_data_converter_new_format_integration -v)",
+      "Bash(PYTEST_CURRENT_TEST=1 pdm run pytest tests/integration/test_new_multilang_dataflow.py::TestNewArchitectureDataFlow -v)",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(pdm update:*)",
+      "Bash(set:*)"
     ],
     "deny": [],
     "ask": []

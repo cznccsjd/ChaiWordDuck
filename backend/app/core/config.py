@@ -90,6 +90,23 @@ class Settings(BaseSettings):
         description="Gemini请求超时时间（秒）"
     )
 
+    # Imagen 3配置
+    imagen_model: str = Field(
+        default="imagen-3.0-generate-001",
+        env="IMAGEN_MODEL",
+        description="Imagen模型名称"
+    )
+    imagen_timeout: int = Field(
+        default=60,
+        env="IMAGEN_TIMEOUT",
+        description="Imagen图片生成超时时间（秒）"
+    )
+    max_image_retries: int = Field(
+        default=3,
+        env="MAX_IMAGE_RETRIES",
+        description="图片生成最大重试次数"
+    )
+
     # OpenAI配置
     openai_api_key: str = Field(
         default="",
@@ -162,6 +179,23 @@ class Settings(BaseSettings):
     # Sentry配置
     sentry_dsn: str = Field(default="", description="Sentry DSN")
 
+    # 图片存储配置
+    image_storage_path: str = Field(
+        default="uploads/images",
+        env="IMAGE_STORAGE_PATH",
+        description="图片存储路径"
+    )
+    max_image_size_mb: int = Field(
+        default=5,
+        env="MAX_IMAGE_SIZE_MB",
+        description="最大图片文件大小（MB）"
+    )
+    allowed_image_formats: str = Field(
+        default="jpg,jpeg,png,webp",
+        env="ALLOWED_IMAGE_FORMATS",
+        description="允许的图片格式（逗号分隔）"
+    )
+
     # 其他配置
     timezone: str = Field(default="Asia/Shanghai", description="时区")
 
@@ -184,6 +218,11 @@ class Settings(BaseSettings):
     def is_testing(self) -> bool:
         """判断是否为测试环境"""
         return self.app_env == "testing"
+
+    @property
+    def allowed_image_formats_list(self) -> List[str]:
+        """获取允许的图片格式列表"""
+        return [fmt.strip().lower() for fmt in self.allowed_image_formats.split(",") if fmt.strip()]
 
 
 @lru_cache()

@@ -89,6 +89,7 @@ class WordManualData(BaseModel):
     etymology: Etymology
     common_mistakes: CommonMistakes
     memory_trick: str
+    images: Optional[Dict[str, Any]] = None  # 新增图片字段
 
     @field_validator('word', 'phonetic', 'translation', 'part_of_speech', 'memory_trick', mode='before')
     @classmethod

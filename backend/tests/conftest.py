@@ -11,10 +11,38 @@ import pytest_asyncio
 from fastapi import FastAPI
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy import TypeDecorator, TEXT
+from sqlalchemy.dialects import sqlite
 
 from app.core.config import settings
 from app.core.database import Base, get_db
 from app.models import User  # noqa: F401
+
+
+class SQLiteJSON(TypeDecorator):
+    """
+    SQLite doesn't have a JSON type, so we use TEXT type and store JSON as string
+    This provides compatibility between PostgreSQL JSONB and SQLite
+    """
+    impl = TEXT
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            import json
+            return json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            import json
+            return json.loads(value)
+        return value
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "sqlite":
+            return dialect.type_descriptor(TEXT())
+        return self
+
 
 # 测试数据库URL（使用内存SQLite或独立测试数据库）
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"  # 内存数据库，每次测试运行后销毁

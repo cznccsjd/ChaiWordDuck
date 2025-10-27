@@ -29,6 +29,7 @@ from app.services.ai.base import AIServiceError, AITimeoutError, AIRateLimitErro
 from app.services.ai_generation_service import AIGenerationService
 from app.services.user_preferences import get_effective_language
 from app.services.guest_preferences import get_effective_language_for_guest
+from app.services.word_upsert_service import get_word_upsert_service
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -190,13 +191,11 @@ async def query_word_internal(
         user_info=user_info, word=normalized_word, language=effective_language
     )
 
-    # 查询单词
-    result = await db.execute(
-        select(Word)
-        .where(Word.word == normalized_word)
-        .order_by(Word.is_golden.desc())  # 优先返回黄金手册
+    # 使用智能查询服务（支持语言降级）
+    upsert_service = await get_word_upsert_service(db)
+    word = await upsert_service.get_word_with_fallback(
+        normalized_word, effective_language
     )
-    word = result.scalar_one_or_none()
 
     if word:
         log_with_context(
@@ -279,20 +278,19 @@ async def query_word_internal(
         ai_service = AIServiceFactory.get_service()
         word_data = ai_service.generate_word_manual(normalized_word, language=effective_language)
 
-        # 4. 使用WordDataConverter转换并保存到数据库
-        from app.models.word_converter import WordDataConverter
+        # 4. 使用智能Upsert服务保存数据
+        upsert_service = await get_word_upsert_service(db)
 
-        # 将AI响应转换为数据库模型
-        word_dict = WordDataConverter.convert_ai_response_to_word(
-            word_data.model_dump(),  # 转换为字典
+        # 将AI响应转换为数据库格式并执行upsert
+        saved_word, was_created = await upsert_service.upsert_word(
+            word_text=normalized_word,
+            ai_response_data=word_data.model_dump(),
             language_code=effective_language,
-            source="ai"
+            source="ai",
+            prompt_version="v1.0"
         )
 
-        new_word = Word(**word_dict)
-        db.add(new_word)
-        await db.commit()
-        await db.refresh(new_word)
+        new_word = saved_word
 
         # 5. 记录AI生成日志
         await AIGenerationService.log_generation(

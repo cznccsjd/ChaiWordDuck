@@ -1,0 +1,28 @@
+Word: accommodation
+ID: 1
+Phonetic: /əˌkɑːməˈdeɪʃn/
+Part of Speech: noun
+Is Golden: True
+Source: manual
+Created At: 2025-10-16 01:55:41.535097
+
+=== Core Game ===
+这是一场"双向调整以达成共处"的协商游戏
+
+=== Formal Scenario ===
+商务谈判中的妥协调和：双方都要做出调整来达成合作
+
+=== Casual Scenario ===
+旅行中的住宿：酒店为客人提供舒适的休息场所
+
+=== Etymology Breakdown ===
+ac-(to, 朝向) + commod-(convenient, 方便) + -ation(名词后缀)
+
+=== Etymology Story ===
+古罗马时代，主人为了让客人住得舒服，会调整房间布置和自己的习惯。这种"双向调整达成舒适共处"的理念，演变成了accommodation这个词。
+
+=== Common Mistakes ===
+最容易犯的错：拼写时漏掉一个m或一个c。正确拼写记住：两个c，两个m
+
+=== Memory Trick ===
+想象酒店房间有两张床(cc)和两个枕头(mm)，这样就记住了accommodation的拼写
