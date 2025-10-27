@@ -22,13 +22,21 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # 3. 复制并安装Python依赖
-# 假设您已将所有依赖导出到 requirements.txt
-COPY requirements.txt .
+# 使用Railway专用的requirements文件（仅生产依赖）
+COPY requirements-railway.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 4. 复制应用代码
 COPY . .
 
-# 5. 定义启动命令 (修复了 $PORT 解析问题，并确保变量解析)
-# 使用 /bin/sh -c 确保 $PORT 和 $DATABASE_URL 等环境变量能被正确解析
-CMD ["/bin/sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+# 5. 创建启动脚本以运行数据库迁移
+RUN echo '#!/bin/sh\n\
+set -e\n\
+echo "Running database migrations..."\n\
+alembic upgrade head\n\
+echo "Starting FastAPI server..."\n\
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# 6. 定义启动命令
+CMD ["/bin/sh", "-c", "exec /app/start.sh"]
