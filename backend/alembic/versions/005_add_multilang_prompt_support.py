@@ -28,6 +28,7 @@ from datetime import datetime
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision: str = '005_add_multilang_prompt_support'
@@ -109,7 +110,7 @@ def upgrade() -> None:
     WHERE is_legacy_format = true;
     """
 
-    connection.execute(migration_query)
+    connection.execute(text(migration_query))
 
     # 7. Add default translation for golden handbook words
     golden_words_translation = {
@@ -131,7 +132,7 @@ def upgrade() -> None:
         SET translation = '{translation}', language_code = 'zh_CN'
         WHERE word = '{word}' AND source = 'manual'
         """
-        connection.execute(update_query)
+        connection.execute(text(update_query))
 
 
 def downgrade() -> None:
