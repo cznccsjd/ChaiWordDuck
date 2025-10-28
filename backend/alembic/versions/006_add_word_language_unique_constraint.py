@@ -21,7 +21,7 @@ from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision: str = '006_add_word_language_unique_constraint'
-down_revision: Union[str, None] = '005_add_multilang_prompt_support'
+down_revision: Union[str, None] = 'fix_alembic_version_length'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
