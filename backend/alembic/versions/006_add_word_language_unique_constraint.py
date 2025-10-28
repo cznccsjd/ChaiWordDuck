@@ -89,12 +89,7 @@ def upgrade() -> None:
         ['word', 'language_code', 'is_golden']
     )
 
-    # Index for language-specific queries
-    op.create_index(
-        'idx_words_language_code',
-        'words',
-        ['language_code']
-    )
+    # Note: idx_words_language_code index already created in 005_add_multilang_prompt_support.py
 
     # 5. Add indexes for new JSONB fields to support efficient querying
     # GIN index for partial match in JSONB fields
@@ -138,7 +133,7 @@ def downgrade() -> None:
     # Drop new indexes first
     op.drop_index('idx_words_core_game_new_partial', table_name='words')
     op.drop_index('idx_words_game_boards_partial', table_name='words')
-    op.drop_index('idx_words_language_code', table_name='words')
+    # Note: idx_words_language_code will be dropped in 005_add_multilang_prompt_support.py downgrade
     op.drop_index('idx_words_word_lang_golden', table_name='words')
     op.drop_index('idx_words_word_lang', table_name='words')
 
