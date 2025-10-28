@@ -119,13 +119,6 @@ def upgrade() -> None:
         '
     """))
 
-    # 7. Log migration completion
-    op.execute(text("""
-        INSERT INTO alembic_version (version_num, created_at)
-        VALUES ('006_add_word_language_unique_constraint', CURRENT_TIMESTAMP)
-        ON CONFLICT (version_num) DO NOTHING;
-    """))
-
 
 def downgrade() -> None:
     """Remove word+language unique constraint and related indexes"""
