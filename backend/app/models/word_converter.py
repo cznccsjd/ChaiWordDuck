@@ -81,7 +81,9 @@ class WordDataConverter:
             'prompt_version': getattr(word, 'prompt_version', 'v1.0'),
             'created_at': word.created_at.isoformat() if word.created_at else None,
             'updated_at': word.updated_at.isoformat() if word.updated_at else None,
-            'is_legacy_format': True
+            'is_legacy_format': True,
+            # 兼容性字段
+            'common_mistakes_str': word.common_mistakes
         }
 
     @classmethod
@@ -323,7 +325,7 @@ class WordDataConverter:
             return cls.legacy_to_new_format(word)
         else:
             # 新格式，直接返回结构化数据
-            return {
+            display_dict = {
                 'id': word.id,
                 'word': word.word,
                 'phonetic': word.phonetic or '',
@@ -347,5 +349,19 @@ class WordDataConverter:
                 'scenario_casual': getattr(word, 'scenario_casual', '') or '',
                 'etymology_breakdown': getattr(word, 'etymology_breakdown', '') or '',
                 'etymology_story': getattr(word, 'etymology_story', '') or '',
-                'common_mistakes': getattr(word, 'common_mistakes', '') or ''
             }
+
+            # 处理 common_mistakes 字段的向后兼容性
+            # 优先使用新格式的结构化数据，如果没有则使用旧格式的字符串
+            common_mistakes_new = getattr(word, 'common_mistakes_new', {})
+            if common_mistakes_new:
+                display_dict['common_mistakes'] = common_mistakes_new
+                # 添加向后兼容的字符串字段
+                display_dict['common_mistakes_str'] = common_mistakes_new.get('warning', getattr(word, 'common_mistakes', '') or '')
+            else:
+                # 如果新格式数据不存在，使用旧格式字符串并构造一个默认结构
+                legacy_mistakes = getattr(word, 'common_mistakes', '') or ''
+                display_dict['common_mistakes'] = {'warning': legacy_mistakes, 'avoidance': ''}
+                display_dict['common_mistakes_str'] = legacy_mistakes
+
+            return display_dict

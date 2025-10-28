@@ -228,6 +228,15 @@ async def query_word_internal(
         # 使用Word对象的to_api_dict方法获取标准化响应
         word_dict = word.to_api_dict(include_legacy_fields=True)
 
+        # 处理 common_mistakes 字段的类型转换
+        common_mistakes_value = word_dict.get("common_mistakes", "")
+        if isinstance(common_mistakes_value, dict):
+            # 如果是字典，提取 warning 字段作为字符串
+            common_mistakes = common_mistakes_value.get("warning", "")
+        else:
+            # 如果已经是字符串，直接使用
+            common_mistakes = str(common_mistakes_value) if common_mistakes_value else ""
+
         return WordQueryResponse(
             id=word_dict["id"],
             word=word_dict["word"],
@@ -239,7 +248,7 @@ async def query_word_internal(
             scenario_casual=word_dict.get("scenario_casual", ""),  # 兼容字段 - 安全访问
             etymology_breakdown=word_dict.get("etymology_breakdown", ""),  # 兼容字段 - 安全访问
             etymology_story=word_dict.get("etymology_story", ""),  # 兼容字段 - 安全访问
-            common_mistakes=word_dict.get("common_mistakes", ""),  # 兼容字段 - 安全访问
+            common_mistakes=common_mistakes,  # 使用处理后的值
             memory_trick=word_dict["memory_trick"],
             is_golden=word_dict["is_golden"],
             remaining_queries=remaining_queries,
@@ -316,6 +325,15 @@ async def query_word_internal(
         # 使用Word对象的to_api_dict方法获取标准化响应
         word_dict = new_word.to_api_dict(include_legacy_fields=True)
 
+        # 处理 common_mistakes 字段的类型转换
+        common_mistakes_value = word_dict.get("common_mistakes", "")
+        if isinstance(common_mistakes_value, dict):
+            # 如果是字典，提取 warning 字段作为字符串
+            common_mistakes = common_mistakes_value.get("warning", "")
+        else:
+            # 如果已经是字符串，直接使用
+            common_mistakes = str(common_mistakes_value) if common_mistakes_value else ""
+
         return WordQueryResponse(
             id=word_dict["id"],
             word=word_dict["word"],
@@ -327,7 +345,7 @@ async def query_word_internal(
             scenario_casual=word_dict.get("scenario_casual", ""),  # 兼容字段 - 安全访问
             etymology_breakdown=word_dict.get("etymology_breakdown", ""),  # 兼容字段 - 安全访问
             etymology_story=word_dict.get("etymology_story", ""),  # 兼容字段 - 安全访问
-            common_mistakes=word_dict.get("common_mistakes", ""),  # 兼容字段 - 安全访问
+            common_mistakes=common_mistakes,  # 使用处理后的值
             memory_trick=word_dict["memory_trick"],
             is_golden=word_dict["is_golden"],
             remaining_queries=remaining_queries,
