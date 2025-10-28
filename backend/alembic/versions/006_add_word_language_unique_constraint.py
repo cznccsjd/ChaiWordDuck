@@ -17,6 +17,7 @@ from datetime import datetime
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision: str = '006_add_word_language_unique_constraint'
@@ -51,7 +52,7 @@ def upgrade() -> None:
     DELETE FROM words WHERE id IN (SELECT id FROM duplicates_to_delete);
     """
 
-    op.execute(cleanup_query)
+    op.execute(text(cleanup_query))
 
     # 2. Remove existing word unique constraint if it exists
     conn = op.get_bind()
@@ -62,7 +63,7 @@ def upgrade() -> None:
     AND contype = 'u'
     AND conname = 'uk_words_word'
     """
-    result = conn.execute(check_constraint_query).scalar()
+    result = conn.execute(text(check_constraint_query)).scalar()
     if result:
         op.drop_constraint('uk_words_word', 'words', type_='unique')
 
@@ -114,21 +115,21 @@ def upgrade() -> None:
     )
 
     # 6. Add table comment for documentation
-    op.execute("""
+    op.execute(text("""
         COMMENT ON TABLE words IS '单词表 - 支持多语言和混合存储格式
         - word + language_code: 唯一约束，支持同一单词多语言版本
         - is_legacy_format: 标识数据格式类型 (true=旧格式, false=新格式)
         - JSONB字段: 存储嵌套的复杂结构化数据
         - 旧格式字段: 保持向后兼容性
         '
-    """)
+    """))
 
     # 7. Log migration completion
-    op.execute("""
+    op.execute(text("""
         INSERT INTO alembic_version (version_num, created_at)
         VALUES ('006_add_word_language_unique_constraint', CURRENT_TIMESTAMP)
         ON CONFLICT (version_num) DO NOTHING;
-    """)
+    """))
 
 
 def downgrade() -> None:
@@ -148,4 +149,4 @@ def downgrade() -> None:
     op.create_unique_constraint('uk_words_word', 'words', ['word'])
 
     # Remove table comment
-    op.execute("COMMENT ON TABLE words IS NULL")
+    op.execute(text("COMMENT ON TABLE words IS NULL"))

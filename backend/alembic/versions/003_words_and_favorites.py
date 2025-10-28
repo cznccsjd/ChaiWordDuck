@@ -13,6 +13,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import text
 
 
 # revision identifiers, used by Alembic.
@@ -93,7 +94,7 @@ def upgrade() -> None:
     op.create_index('idx_favorites_created', 'favorites', ['created_at'], postgresql_ops={'created_at': 'DESC'})
 
     # 4. Insert golden handbook words (MVP预置数据)
-    op.execute("""
+    op.execute(text("""
         INSERT INTO words (word, phonetic, part_of_speech, core_game, scenario_formal, scenario_casual,
                           etymology_breakdown, etymology_story, common_mistakes, memory_trick, is_golden, source)
         VALUES
@@ -196,7 +197,7 @@ def upgrade() -> None:
          '拼写难点：bureau-部分，-cracy结尾(不是-crazy)',
          '联想：bureau(局) + cracy(统治) → 官僚局的统治方式',
          true, 'manual')
-    """)
+    """))
 
 
 def downgrade() -> None:
