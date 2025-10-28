@@ -26,22 +26,29 @@ export async function queryWord(word: string): Promise<WordManual> {
       throw new Error('API返回数据缺少单词ID');
     }
 
+    // 增强的字段映射逻辑，包含容错处理
     const mappedData = {
       id: apiData.id,
-      word: apiData.word,
+      word: apiData.word || '',
       phonetic: apiData.phonetic || '',
       part_of_speech: apiData.partOfSpeech || '',
-      core_game: apiData.coreGame,
-      scene_formal: apiData.scenarioFormal,
-      scene_daily: apiData.scenarioCasual,
-      etymology: apiData.etymologyBreakdown,
-      common_mistakes: apiData.commonMistakes,
-      memory_trick: apiData.memoryTrick,
-      is_golden: apiData.isGolden,
-      created_at: apiData.created_at,
+      core_game: apiData.coreGame || '',
+      scene_formal: apiData.scenarioFormal || '',
+      scene_daily: apiData.scenarioCasual || '',
+      etymology: apiData.etymologyBreakdown || '',
+      common_mistakes: apiData.commonMistakes || '',
+      memory_trick: apiData.memoryTrick || '',
+      is_golden: apiData.isGolden || false,
+      created_at: apiData.created_at || new Date().toISOString(),
     };
 
     console.log('API: 映射后的snake_case数据:', mappedData);
+
+    // 验证映射后的数据完整性
+    if (!mappedData.word) {
+      throw new Error('API返回数据缺少单词内容');
+    }
+
     return mappedData;
   } catch (error) {
     console.error('API: 查询单词失败:', error);
@@ -84,22 +91,29 @@ export async function getWordById(wordId: number): Promise<WordManual> {
       throw new Error('API返回数据缺少单词ID');
     }
 
+    // 增强的字段映射逻辑，包含容错处理
     const mappedData = {
       id: apiData.id,
-      word: apiData.word,
+      word: apiData.word || '',
       phonetic: apiData.phonetic || '',
       part_of_speech: apiData.partOfSpeech || '',
-      core_game: apiData.coreGame,
-      scene_formal: apiData.scenarioFormal,
-      scene_daily: apiData.scenarioCasual,
-      etymology: apiData.etymologyBreakdown,
-      common_mistakes: apiData.commonMistakes,
-      memory_trick: apiData.memoryTrick,
-      is_golden: apiData.isGolden,
-      created_at: apiData.created_at,
+      core_game: apiData.coreGame || '',
+      scene_formal: apiData.scenarioFormal || '',
+      scene_daily: apiData.scenarioCasual || '',
+      etymology: apiData.etymologyBreakdown || '',
+      common_mistakes: apiData.commonMistakes || '',
+      memory_trick: apiData.memoryTrick || '',
+      is_golden: apiData.isGolden || false,
+      created_at: apiData.created_at || new Date().toISOString(),
     };
 
     console.log('API: 映射后的snake_case数据:', mappedData);
+
+    // 验证映射后的数据完整性
+    if (!mappedData.word) {
+      throw new Error('API返回数据缺少单词内容');
+    }
+
     return mappedData;
   } catch (error) {
     console.error('API: 获取单词详情失败:', error);

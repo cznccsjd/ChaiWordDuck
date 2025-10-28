@@ -58,23 +58,46 @@ export function SearchBox({
 
     setIsSearching(true);
     try {
+      console.log('SearchBox: 开始查询单词:', trimmedWord);
+
       // 调用API查询单词
       const wordData = await queryWord(trimmedWord);
+      console.log('SearchBox: API返回的完整数据:', wordData);
 
       // 验证返回的数据包含有效的ID
       if (!wordData || !wordData.id) {
+        console.error('SearchBox: API返回数据无效:', wordData);
         throw new Error('API返回数据格式错误，缺少单词ID');
       }
 
-      console.log('SearchBox: 查询成功，单词数据:', wordData);
+      // 验证单词内容不为空
+      if (!wordData.word || wordData.word.trim() === '') {
+        console.error('SearchBox: 单词内容为空:', wordData);
+        throw new Error('API返回的单词内容为空');
+      }
+
+      console.log('SearchBox: 查询成功，单词数据验证通过:', {
+        id: wordData.id,
+        word: wordData.word,
+        has_phonetic: !!wordData.phonetic,
+        has_core_game: !!wordData.core_game,
+      });
 
       // 触发回调（用于刷新查询次数）
       onSearch?.();
 
       // 跳转到单词详情页
-      console.log('SearchBox: 准备跳转到路由:', `/word/${wordData.id}`);
-      router.push(`/word/${wordData.id}`);
+      const targetRoute = `/word/${wordData.id}`;
+      console.log('SearchBox: 准备跳转到路由:', targetRoute);
+
+      // 使用setTimeout确保所有状态更新完成后再跳转
+      setTimeout(() => {
+        console.log('SearchBox: 执行路由跳转到:', targetRoute);
+        router.push(targetRoute);
+      }, 100);
+
     } catch (error) {
+      console.error('SearchBox: 查询单词时发生错误:', error);
       const errorMessage = error instanceof Error ? error.message : '查询失败，请稍后重试';
 
       // 对于429错误使用ErrorDisplay组件显示，其他错误使用toast

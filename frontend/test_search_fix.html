@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索功能测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 拆词鸭搜索功能测试</h1>
+
+    <div class="test-section info">
+        <h3>测试目标</h3>
+        <p>验证修复后的搜索功能能否正常跳转到单词详情页</p>
+        <p>前端地址: <a href="http://localhost:3002" target="_blank">http://localhost:3002</a></p>
+        <p>后端地址: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a></p>
+    </div>
+
+    <div class="test-section">
+        <h3>📡 API测试</h3>
+        <button onclick="testQueryAPI()">测试查询API</button>
+        <button onclick="testDetailAPI()">测试详情API</button>
+        <button onclick="testDataMapping()">测试数据映射</button>
+        <div id="apiResults" class="log" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 前端测试</h3>
+        <p><strong>手动测试步骤：</strong></p>
+        <ol>
+            <li>打开 <a href="http://localhost:3002" target="_blank">http://localhost:3002</a></li>
+            <li>在搜索框中输入 "embarrassment"</li>
+            <li>点击搜索按钮</li>
+            <li>检查是否跳转到 <code>/word/2</code> 页面</li>
+            <li>检查页面是否正常显示单词信息</li>
+        </ol>
+
+        <button onclick="window.open('http://localhost:3002', '_blank')">打开前端页面</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 测试结果</h3>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        let results = [];
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('apiResults');
+            logDiv.style.display = 'block';
+            logDiv.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function addResult(test, status, details) {
+            results.push({ test, status, details, time: new Date().toLocaleTimeString() });
+            updateResults();
+        }
+
+        function updateResults() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = results.map(r => `
+                <div class="test-section ${r.status === 'success' ? 'success' : r.status === 'error' ? 'error' : 'info'}">
+                    <strong>${r.test}</strong> - ${r.status}
+                    <span style="float: right; color: #666; font-size: 12px;">${r.time}</span>
+                    ${details ? `<pre>${details}</pre>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function testQueryAPI() {
+            try {
+                log('开始测试查询API...');
+                const response = await fetch(`${API_BASE}/words/query/embarrassment`);
+                const data = await response.json();
+
+                log('查询API响应状态: ' + response.status);
+                log('查询API响应数据: ' + JSON.stringify(data, null, 2));
+
+                if (data.success && data.data && data.data.id) {
+                    addResult('查询API测试', 'success', `单词ID: ${data.data.id}, 单词: ${data.data.word}`);
+                } else {
+                    addResult('查询API测试', 'error', 'API返回格式不正确');
+                }
+            } catch (error) {
+                log('查询API测试失败: ' + error.message, 'error');
+                addResult('查询API测试', 'error', error.message);
+            }
+        }
+
+        async function testDetailAPI() {
+            try {
+                log('开始测试详情API...');
+                const response = await fetch(`${API_BASE}/words/2`);
+                const data = await response.json();
+
+                log('详情API响应状态: ' + response.status);
+                log('详情API响应数据: ' + JSON.stringify(data, null, 2));
+
+                if (data.success && data.data && data.data.id === 2) {
+                    addResult('详情API测试', 'success', `单词: ${data.data.word}, 核心游戏: ${data.data.coreGame ? '有内容' : '无内容'}`);
+                } else {
+                    addResult('详情API测试', 'error', '详情API返回格式不正确');
+                }
+            } catch (error) {
+                log('详情API测试失败: ' + error.message, 'error');
+                addResult('详情API测试', 'error', error.message);
+            }
+        }
+
+        async function testDataMapping() {
+            try {
+                log('开始测试数据映射...');
+
+                // 模拟前端数据映射
+                const queryResponse = await fetch(`${API_BASE}/words/query/embarrassment`);
+                const queryData = (await queryResponse.json()).data;
+
+                const mappedData = {
+                    id: queryData.id,
+                    word: queryData.word || '',
+                    phonetic: queryData.phonetic || '',
+                    part_of_speech: queryData.partOfSpeech || '',
+                    core_game: queryData.coreGame || '',
+                    scene_formal: queryData.scenarioFormal || '',
+                    scene_daily: queryData.scenarioCasual || '',
+                    etymology: queryData.etymologyBreakdown || '',
+                    common_mistakes: queryData.commonMistakes || '',
+                    memory_trick: queryData.memoryTrick || '',
+                    is_golden: queryData.isGolden || false,
+                    created_at: queryData.created_at || new Date().toISOString(),
+                };
+
+                log('映射后数据: ' + JSON.stringify(mappedData, null, 2));
+
+                const hasRequiredFields = mappedData.id && mappedData.word && mappedData.word.trim() !== '';
+
+                if (hasRequiredFields) {
+                    addResult('数据映射测试', 'success', `路由路径: /word/${mappedData.id}`);
+                } else {
+                    addResult('数据映射测试', 'error', '缺少必需字段');
+                }
+            } catch (error) {
+                log('数据映射测试失败: ' + error.message, 'error');
+                addResult('数据映射测试', 'error', error.message);
+            }
+        }
+
+        // 页面加载时自动开始测试
+        window.onload = function() {
+            log('页面加载完成，开始自动测试...');
+            setTimeout(() => {
+                testQueryAPI();
+                setTimeout(() => {
+                    testDetailAPI();
+                    setTimeout(() => {
+                        testDataMapping();
+                    }, 1000);
+                }, 1000);
+            }, 500);
+        };
+    </script>
+</body>
+</html>
