@@ -341,11 +341,11 @@ class WordDataConverter:
                 'created_at': word.created_at.isoformat() if word.created_at else None,
                 'updated_at': word.updated_at.isoformat() if word.updated_at else None,
                 'is_legacy_format': is_legacy,
-                # 兼容性字段
-                'core_game_content': word.core_game,
-                'scenario_formal': word.scenario_formal,
-                'scenario_casual': word.scenario_casual,
-                'etymology_breakdown': word.etymology_breakdown,
-                'etymology_story': word.etymology_story,
-                'common_mistakes': word.common_mistakes
+                # 兼容性字段 - 增强处理，确保字段始终存在
+                'core_game_content': getattr(word, 'core_game', '') or '',
+                'scenario_formal': getattr(word, 'scenario_formal', '') or '',
+                'scenario_casual': getattr(word, 'scenario_casual', '') or '',
+                'etymology_breakdown': getattr(word, 'etymology_breakdown', '') or '',
+                'etymology_story': getattr(word, 'etymology_story', '') or '',
+                'common_mistakes': getattr(word, 'common_mistakes', '') or ''
             }
