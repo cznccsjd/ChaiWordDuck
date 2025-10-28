@@ -3,6 +3,23 @@
 Alembic迁移修复脚本
 
 用于修复数据库迁移中的版本号长度限制问题
+
+环境支持:
+- 本地开发环境: 自动检测并使用 pdm run alembic 命令
+- Railway 部署环境: 自动检测并使用 alembic 命令（通过 pip 安装）
+- Docker 容器环境: 自动检测并使用 alembic 命令
+- CI/CD 环境: 自动检测并使用 alembic 命令
+
+环境变量:
+- RAILWAY_ENVIRONMENT=production: 强制使用 pip 模式
+- AUTO_FIX_ALEMBIC=true: 强制使用 pip 模式（自动化部署）
+- DOCKER_ENV=true: 强制使用 pip 模式（Docker 环境）
+- CI=true: 强制使用 pip 模式（CI/CD 环境）
+
+使用方法:
+1. 本地开发: python fix_alembic_migration.py
+2. Railway 自动部署: 设置环境变量 AUTO_FIX_ALEMBIC=true
+3. 手动修复: 直接运行脚本并按照提示操作
 """
 import os
 import sys
@@ -13,8 +30,92 @@ project_root = Path(__file__).resolve().parents[0]
 sys.path.append(str(project_root))
 
 import asyncio
+import subprocess
 from sqlalchemy import create_engine, text
 from app.core.config import settings
+
+
+def detect_package_manager():
+    """
+    检测当前环境使用的包管理工具
+
+    Returns:
+        str: 'pdm' 或 'pip'
+    """
+    try:
+        # 检测 Railway 部署环境
+        if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
+            print("[ENV] 检测到 Railway 生产环境，使用 pip")
+            return 'pip'
+
+        # 检测其他自动化部署环境
+        if os.environ.get('AUTO_FIX_ALEMBIC') == 'true':
+            print("[ENV] 检测到自动化环境，使用 pip")
+            return 'pip'
+
+        # 检测 Docker 环境
+        if os.environ.get('DOCKER_ENV') == 'true':
+            print("[ENV] 检测到 Docker 环境，使用 pip")
+            return 'pip'
+
+        # 检测 CI/CD 环境
+        if os.environ.get('CI') == 'true':
+            print("[ENV] 检测到 CI/CD 环境，使用 pip")
+            return 'pip'
+
+        # 检测是否存在 pdm.lock 文件和 pdm 命令
+        pdm_lock_path = project_root / "pdm.lock"
+        if pdm_lock_path.exists():
+            try:
+                # 检查 pdm 命令是否可用
+                result = subprocess.run(["pdm", "--version"],
+                                      capture_output=True, text=True,
+                                      timeout=10, cwd=project_root)
+                if result.returncode == 0:
+                    pdm_version = result.stdout.strip()
+                    print(f"[ENV] 检测到本地开发环境，使用 pdm (版本: {pdm_version})")
+                    return 'pdm'
+                else:
+                    print(f"[ENV] pdm 命令执行失败，回退到 pip")
+                    return 'pip'
+            except (subprocess.TimeoutExpired, FileNotFoundError, PermissionError) as e:
+                print(f"[ENV] pdm 命令不可用 ({e.__class__.__name__})，回退到 pip")
+                return 'pip'
+
+        # 默认使用 pip
+        print("[ENV] 使用默认包管理工具: pip")
+        return 'pip'
+    except Exception as e:
+        print(f"[ERROR] 检测包管理工具时出错: {e}，使用默认的 pip")
+        return 'pip'
+
+
+def run_alembic_command(args, capture_output=True, text=True, cwd=None):
+    """
+    执行 alembic 命令，自动选择正确的包管理工具
+
+    Args:
+        args (list): alembic 命令参数列表（不包含 'alembic' 和包管理器前缀）
+        capture_output (bool): 是否捕获输出
+        text (bool): 是否以文本模式处理输出
+        cwd (str): 工作目录
+
+    Returns:
+        subprocess.CompletedProcess: 命令执行结果
+    """
+    package_manager = detect_package_manager()
+
+    if package_manager == 'pdm':
+        command = ["pdm", "run", "alembic"] + args
+        print(f"[EXEC] pdm run alembic {' '.join(args)}")
+    else:
+        command = ["alembic"] + args
+        print(f"[EXEC] alembic {' '.join(args)}")
+
+    if cwd is None:
+        cwd = project_root
+
+    return subprocess.run(command, capture_output=capture_output, text=text, cwd=cwd)
 
 
 async def check_database_connection():
@@ -63,15 +164,11 @@ async def check_version_num_length():
 
 async def run_alembic_commands():
     """运行Alembic命令"""
-    import subprocess
-
     print("\n[INFO] 开始修复流程...")
 
     # 步骤1: 应用修复迁移
     print("\n[INFO] 步骤1: 应用版本号长度修复迁移...")
-    result = subprocess.run([
-        "pdm", "run", "alembic", "upgrade", "fix_alembic_version_length"
-    ], capture_output=True, text=True, cwd=project_root)
+    result = run_alembic_command(["upgrade", "fix_alembic_version_length"])
 
     if result.returncode != 0:
         print(f"[ERROR] 修复迁移失败:")
@@ -83,9 +180,7 @@ async def run_alembic_commands():
 
     # 步骤2: 应用006迁移
     print("\n[INFO] 步骤2: 应用单词语言约束迁移...")
-    result = subprocess.run([
-        "pdm", "run", "alembic", "upgrade", "006_add_word_language_unique_constraint"
-    ], capture_output=True, text=True, cwd=project_root)
+    result = run_alembic_command(["upgrade", "006_add_word_language_unique_constraint"])
 
     if result.returncode != 0:
         print(f"[ERROR] 006迁移失败:")
@@ -102,6 +197,10 @@ async def main():
     """主函数"""
     print("Alembic迁移修复工具")
     print("=" * 50)
+
+    # 显示包管理工具检测结果
+    package_manager = detect_package_manager()
+    print(f"[SETUP] 使用包管理工具: {package_manager}")
 
     # 检查是否为自动化模式（Railway部署）
     auto_mode = os.environ.get('RAILWAY_ENVIRONMENT') == 'production' or os.environ.get('AUTO_FIX_ALEMBIC') == 'true'
@@ -160,10 +259,7 @@ async def main():
 
         if auto_mode:
             print(f"\n[AUTO] 自动化模式：继续应用006迁移")
-            import subprocess
-            result = subprocess.run([
-                "pdm", "run", "alembic", "upgrade", "006_add_word_language_unique_constraint"
-            ], capture_output=True, text=True, cwd=project_root)
+            result = run_alembic_command(["upgrade", "006_add_word_language_unique_constraint"])
 
             if result.returncode == 0:
                 print(f"\n[SUCCESS] 006迁移应用成功!")
@@ -173,10 +269,7 @@ async def main():
         else:
             response = input(f"\n[QUESTION] 是否继续应用006迁移? (y/N): ")
             if response.lower() == 'y':
-                import subprocess
-                result = subprocess.run([
-                    "pdm", "run", "alembic", "upgrade", "006_add_word_language_unique_constraint"
-                ], capture_output=True, text=True, cwd=project_root)
+                result = run_alembic_command(["upgrade", "006_add_word_language_unique_constraint"])
 
                 if result.returncode == 0:
                     print(f"\n[SUCCESS] 006迁移应用成功!")
