@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parents[0]))
 
 from sqlalchemy import text
 from app.core.config import settings
-from app.core.database import get_async_engine
+from app.core.database import engine
 import logging
 
 # 配置日志
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 async def check_duplicate_indexes():
     """检查重复索引"""
-    engine = get_async_engine()
+    global engine
 
     try:
         async with engine.connect() as conn:
@@ -58,7 +58,7 @@ async def check_duplicate_indexes():
 
 async def get_current_alembic_version():
     """获取当前alembic版本"""
-    engine = get_async_engine()
+    global engine
 
     try:
         async with engine.connect() as conn:
@@ -76,7 +76,7 @@ async def get_current_alembic_version():
 
 async def fix_duplicate_index():
     """修复重复索引问题"""
-    engine = get_async_engine()
+    global engine
 
     try:
         async with engine.begin() as conn:
@@ -126,7 +126,7 @@ async def fix_duplicate_index():
 
 async def set_alembic_version(version: str):
     """设置alembic版本"""
-    engine = get_async_engine()
+    global engine
 
     try:
         async with engine.begin() as conn:
@@ -154,11 +154,9 @@ async def main():
 
     # 1. 检查数据库连接
     try:
-        engine = get_async_engine()
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("✓ 数据库连接正常")
-        await engine.dispose()
     except Exception as e:
         logger.error(f"✗ 数据库连接失败: {e}")
         logger.error("请检查数据库服务是否运行以及连接配置是否正确")
