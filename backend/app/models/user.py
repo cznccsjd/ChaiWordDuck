@@ -44,8 +44,8 @@ class User(Base):
     preferred_language: Mapped[str] = mapped_column(
         String(10),
         nullable=False,
-        default="zh_CN",
-        server_default="zh_CN",
+        default="zh",
+        server_default="zh",
     )
 
     # 时间戳
@@ -71,7 +71,7 @@ class User(Base):
             name="check_membership_tier",
         ),
         CheckConstraint(
-            "preferred_language IN ('zh_CN', 'en_US')",
+            "preferred_language IN ('zh', 'en')",
             name="check_preferred_language",
         ),
         Index("idx_users_membership", "membership_tier", "membership_expires_at"),

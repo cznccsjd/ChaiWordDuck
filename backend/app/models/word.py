@@ -42,7 +42,7 @@ class Word(Base):
     # 多语言支持字段
     translation: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     language_code: Mapped[Optional[str]] = mapped_column(
-        String(10), nullable=True, server_default='en', index=True
+        String(10), nullable=True, server_default='zh', index=True
     )
     prompt_version: Mapped[Optional[str]] = mapped_column(
         String(20), nullable=True, server_default='v1.0'
@@ -102,7 +102,7 @@ class Word(Base):
     table_constraints = [
         CheckConstraint("source IN ('ai', 'manual')", name="check_word_source"),
         CheckConstraint(
-            "language_code IN ('en', 'zh_CN', 'zh_TW', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ru')",
+            "language_code IN ('en', 'zh', 'zh_TW', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ru')",
             name="check_words_language_code"
         ),
         Index("idx_words_word", "word", unique=True),

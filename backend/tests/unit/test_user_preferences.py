@@ -29,7 +29,7 @@ class TestUserModel:
 
         # 检查默认值
         assert hasattr(user, 'preferred_language')
-        assert user.preferred_language == "zh_CN"
+        assert user.preferred_language == "zh"
 
     async def test_user_model_with_preferred_language_explicit(self, test_db: AsyncSession):
         """测试用户模型显式设置语言偏好"""
@@ -39,13 +39,13 @@ class TestUserModel:
             email="test2@example.com",
             password_hash=get_password_hash("TestPass123"),
             membership_tier="free",
-            preferred_language="en_US",
+            preferred_language="en",
         )
         test_db.add(user)
         await test_db.commit()
         await test_db.refresh(user)
 
-        assert user.preferred_language == "en_US"
+        assert user.preferred_language == "en"
 
     async def test_user_model_invalid_language(self, test_db: AsyncSession):
         """测试用户模型无效语言代码"""
@@ -66,12 +66,12 @@ class TestUserModel:
     async def test_update_user_preferred_language(self, test_db: AsyncSession, created_user: User):
         """测试更新用户语言偏好"""
         # 更新语言偏好
-        created_user.preferred_language = "en_US"
+        created_user.preferred_language = "en"
         created_user.updated_at = datetime.utcnow()
         await test_db.commit()
         await test_db.refresh(created_user)
 
-        assert created_user.preferred_language == "en_US"
+        assert created_user.preferred_language == "en"
 
 
 class TestUserPreferencesSchemas:
@@ -84,24 +84,24 @@ class TestUserPreferencesSchemas:
             "email": "test@example.com",
             "membership_tier": "free",
             "email_verified": True,
-            "preferred_language": "zh_CN",
+            "preferred_language": "zh",
             "created_at": "2024-01-01T00:00:00",
         }
 
         response = UserPreferencesResponse(**data)
         assert response.id == 1
         assert response.email == "test@example.com"
-        assert response.preferred_language == "zh_CN"
+        assert response.preferred_language == "zh"
 
     def test_user_preferences_update_request_valid(self):
         """测试用户偏好更新请求schema"""
         # 测试更新为中文
-        request = UserPreferencesUpdateRequest(preferred_language="zh_CN")
-        assert request.preferred_language == "zh_CN"
+        request = UserPreferencesUpdateRequest(preferred_language="zh")
+        assert request.preferred_language == "zh"
 
         # 测试更新为英文
-        request = UserPreferencesUpdateRequest(preferred_language="en_US")
-        assert request.preferred_language == "en_US"
+        request = UserPreferencesUpdateRequest(preferred_language="en")
+        assert request.preferred_language == "en"
 
     def test_user_preferences_update_request_invalid_language(self):
         """测试用户偏好更新请求无效语言代码"""
@@ -113,7 +113,7 @@ class TestUserPreferencesSchemas:
         with pytest.raises(ValueError, match="preferred_language不能为空"):
             UserPreferencesUpdateRequest(preferred_language="")
 
-    @pytest.mark.parametrize("language", ["zh_CN", "en_US"])
+    @pytest.mark.parametrize("language", ["zh", "en"])
     def test_user_preferences_supported_languages(self, language):
         """测试支持的语言代码"""
         request = UserPreferencesUpdateRequest(preferred_language=language)
@@ -123,33 +123,33 @@ class TestUserPreferencesSchemas:
 class TestUserPreferencesValidation:
     """用户偏好验证逻辑测试"""
 
-    def test_is_supported_language_zh_cn(self):
+    def test_is_supported_language_zh(self):
         """测试中文语言代码验证"""
         from app.validators.user_preferences import is_supported_language
 
-        assert is_supported_language("zh_CN") is True
+        assert is_supported_language("zh") is True
 
-    def test_is_supported_language_en_us(self):
+    def test_is_supported_language_en(self):
         """测试英文语言代码验证"""
         from app.validators.user_preferences import is_supported_language
 
-        assert is_supported_language("en_US") is True
+        assert is_supported_language("en") is True
 
     def test_is_supported_language_invalid(self):
         """测试无效语言代码验证"""
         from app.validators.user_preferences import is_supported_language
 
         assert is_supported_language("invalid") is False
-        assert is_supported_language("zh") is False
-        assert is_supported_language("en") is False
+        assert is_supported_language("zh_CN") is False  # 旧格式不再支持
+        assert is_supported_language("en_US") is False  # 旧格式不再支持
         assert is_supported_language("") is False
 
     def test_validate_preferred_language_valid(self):
         """测试有效语言偏好验证"""
         from app.validators.user_preferences import validate_preferred_language
 
-        assert validate_preferred_language("zh_CN") == "zh_CN"
-        assert validate_preferred_language("en_US") == "en_US"
+        assert validate_preferred_language("zh") == "zh"
+        assert validate_preferred_language("en") == "en"
 
     def test_validate_preferred_language_invalid(self):
         """测试无效语言偏好验证"""
@@ -163,7 +163,7 @@ class TestUserPreferencesValidation:
         from app.services.user_preferences import get_default_language_for_new_user
 
         default_lang = get_default_language_for_new_user()
-        assert default_lang == "zh_CN"
+        assert default_lang == "zh"
 
     def test_get_user_language_preference_with_value(self, created_user: User):
         """测试获取用户语言偏好（有值的情况）"""
@@ -174,7 +174,7 @@ class TestUserPreferencesValidation:
         # 模拟用户有语言偏好设置
         if hasattr(created_user, 'preferred_language'):
             language = get_user_language_preference(created_user)
-            assert language in ["zh_CN", "en_US"]
+            assert language in ["zh", "en"]
 
     def test_get_user_language_preference_fallback(self):
         """测试获取用户语言偏好（回退到默认值）"""
@@ -186,7 +186,7 @@ class TestUserPreferencesValidation:
 
         user = MockUser()
         language = get_user_language_preference(user)
-        assert language == "zh_CN"
+        assert language == "zh"
 
 
 class TestGuestLanguagePreferences:
@@ -198,38 +198,47 @@ class TestGuestLanguagePreferences:
 
         # 测试中文优先
         language = get_language_from_accept_language("zh-CN,zh;q=0.9,en;q=0.8")
-        assert language == "zh_CN"
+        assert language == "zh"
 
         # 测试英文优先
         language = get_language_from_accept_language("en-US,en;q=0.9,zh;q=0.8")
-        assert language == "en_US"
+        assert language == "en"
 
         # 测试没有头部
         language = get_language_from_accept_language(None)
-        assert language == "zh_CN"
+        assert language == "zh"
 
     def test_get_language_from_cookie(self):
         """测试从Cookie获取语言偏好"""
         from app.services.guest_preferences import get_language_from_cookie
 
         # 测试中文Cookie
-        cookies = {"language": "zh_CN"}
+        cookies = {"language": "zh"}
         language = get_language_from_cookie(cookies)
-        assert language == "zh_CN"
+        assert language == "zh"
 
         # 测试英文Cookie
+        cookies = {"language": "en"}
+        language = get_language_from_cookie(cookies)
+        assert language == "en"
+
+        # 测试旧格式Cookie（应该被标准化）
+        cookies = {"language": "zh_CN"}
+        language = get_language_from_cookie(cookies)
+        assert language == "zh"
+
         cookies = {"language": "en_US"}
         language = get_language_from_cookie(cookies)
-        assert language == "en_US"
+        assert language == "en"
 
         # 测试无效Cookie
         cookies = {"language": "invalid"}
         language = get_language_from_cookie(cookies)
-        assert language == "zh_CN"
+        assert language == "zh"
 
         # 测试没有Cookie
         language = get_language_from_cookie({})
-        assert language == "zh_CN"
+        assert language == "zh"
 
     def test_guest_language_preference_priority(self):
         """测试游客语言偏好优先级"""
@@ -237,16 +246,22 @@ class TestGuestLanguagePreferences:
 
         # Cookie优先于Accept-Language
         headers = {"Accept-Language": "en-US,en;q=0.9"}
-        cookies = {"language": "zh_CN"}
+        cookies = {"language": "zh"}
         language = get_guest_language_preference(headers, cookies)
-        assert language == "zh_CN"
+        assert language == "zh"
 
         # 没有Cookie时使用Accept-Language
         headers = {"Accept-Language": "en-US,en;q=0.9"}
         cookies = {}
         language = get_guest_language_preference(headers, cookies)
-        assert language == "en_US"
+        assert language == "en"
+
+        # 测试旧格式Cookie标准化
+        headers = {"Accept-Language": "en-US,en;q=0.9"}
+        cookies = {"language": "zh_CN"}
+        language = get_guest_language_preference(headers, cookies)
+        assert language == "zh"
 
         # 都没有时使用默认值
         language = get_guest_language_preference({}, {})
-        assert language == "zh_CN"
+        assert language == "zh"

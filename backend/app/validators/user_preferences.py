@@ -5,9 +5,9 @@
 """
 from typing import Optional
 
-# 支持的语言列表
-SUPPORTED_LANGUAGES = ["zh_CN", "en_US"]
-DEFAULT_LANGUAGE = "zh_CN"
+# 支持的语言列表 - 使用2字符ISO 639-1标准语言代码
+SUPPORTED_LANGUAGES = ["zh", "en"]
+DEFAULT_LANGUAGE = "zh"
 
 
 def is_supported_language(language: str) -> bool:
@@ -41,7 +41,7 @@ def validate_preferred_language(language: str) -> str:
 
     language = language.strip()
     if not is_supported_language(language):
-        raise ValueError("不支持的语言代码，仅支持: zh_CN, en_US")
+        raise ValueError("不支持的语言代码，仅支持: zh, en")
 
     return language
 
@@ -73,15 +73,20 @@ def normalize_language_code(language: Optional[str]) -> str:
     if is_supported_language(language):
         return language
 
-    # 尝试映射常见的语言代码
+    # 尝试映射常见的语言代码到2字符格式
     language_mapping = {
-        "zh": "zh_CN",
-        "zh-cn": "zh_CN",
-        "zh_CN": "zh_CN",
-        "en": "en_US",
-        "en-us": "en_US",
-        "en_US": "en_US",
+        "zh_cn": "zh",
+        "zh-cn": "zh",
+        "zh": "zh",
+        "en_us": "en",
+        "en-us": "en",
+        "en": "en",
     }
 
+    # 先尝试直接匹配
+    if is_supported_language(language):
+        return language
+
+    # 然后尝试映射
     normalized = language_mapping.get(language.lower(), DEFAULT_LANGUAGE)
     return normalized if is_supported_language(normalized) else DEFAULT_LANGUAGE

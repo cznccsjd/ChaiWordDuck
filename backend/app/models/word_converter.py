@@ -16,11 +16,11 @@ from app.models.word import Word
 class WordDataConverter:
     """单词数据转换器，处理新旧格式转换"""
 
-    # 支持的语言代码
+    # 支持的语言代码 - 使用2字符ISO 639-1标准语言代码
     SUPPORTED_LANGUAGES = {
         'en': 'English',
-        'zh_CN': '简体中文',
-        'zh_TW': '繁體中文',
+        'zh': '简体中文',
+        'zh_TW': '繁體中文',  # 保留用于兼容性，但实际使用zh
         'ja': '日本語',
         'ko': '한국어',
         'fr': 'Français',
@@ -29,6 +29,48 @@ class WordDataConverter:
         'it': 'Italiano',
         'ru': 'Русский'
     }
+
+    @classmethod
+    def normalize_language_code(cls, language_code: str) -> str:
+        """
+        标准化语言代码为2字符格式
+
+        Args:
+            language_code: 原始语言代码
+
+        Returns:
+            标准化后的2字符语言代码
+        """
+        if not language_code:
+            return 'en'  # 默认语言
+
+        language_code = language_code.strip()
+
+        # 如果已经是2字符代码，直接返回
+        if len(language_code) == 2 and language_code.islower():
+            return language_code
+
+        # 映射常见的5字符代码到2字符代码
+        language_mapping = {
+            'zh_cn': 'zh',
+            'zh-tw': 'zh',
+            'en_us': 'en',
+            'en-gb': 'en',
+        }
+
+        # 处理不同格式
+        normalized = language_mapping.get(language_code.lower())
+        if normalized:
+            return normalized
+
+        # 处理特殊情况
+        if language_code.startswith('zh'):
+            return 'zh'
+        elif language_code.startswith('en'):
+            return 'en'
+
+        # 默认返回英文
+        return 'en'
 
     @classmethod
     def legacy_to_new_format(cls, word: Word) -> Dict[str, Any]:
@@ -47,7 +89,7 @@ class WordDataConverter:
             'phonetic': word.phonetic or '',
             'translation': getattr(word, 'translation', cls._generate_translation_hint(word)),
             'part_of_speech': word.part_of_speech or '',
-            'language_code': getattr(word, 'language_code', 'en'),
+            'language_code': cls.normalize_language_code(getattr(word, 'language_code', 'en')),
             'core_game': {
                 'content': word.core_game
             },
@@ -331,7 +373,7 @@ class WordDataConverter:
                 'phonetic': word.phonetic or '',
                 'translation': getattr(word, 'translation', ''),
                 'part_of_speech': word.part_of_speech or '',
-                'language_code': getattr(word, 'language_code', 'en'),
+                'language_code': cls.normalize_language_code(getattr(word, 'language_code', 'en')),
                 'core_game': getattr(word, 'core_game_new', {}),
                 'game_boards': getattr(word, 'game_boards', {}),
                 'etymology': getattr(word, 'etymology_new', {}),

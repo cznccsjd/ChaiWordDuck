@@ -168,7 +168,7 @@ class UserPreferencesResponse(BaseModel):
 class UserPreferencesUpdateRequest(BaseModel):
     """用户偏好更新请求"""
 
-    preferred_language: str = Field(..., description="首选语言", examples=["zh_CN", "en_US"])
+    preferred_language: str = Field(..., description="首选语言", examples=["zh", "en"])
 
     @field_validator("preferred_language")
     @classmethod
@@ -178,7 +178,7 @@ class UserPreferencesUpdateRequest(BaseModel):
             raise ValueError("preferred_language不能为空")
 
         v = v.strip()
-        supported_languages = ["zh_CN", "en_US"]
+        supported_languages = ["zh", "en"]
         if v not in supported_languages:
-            raise ValueError("不支持的语言代码，仅支持: zh_CN, en_US")
+            raise ValueError("不支持的语言代码，仅支持: zh, en")
         return v

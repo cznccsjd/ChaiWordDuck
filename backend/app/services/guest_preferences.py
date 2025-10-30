@@ -73,21 +73,25 @@ def normalize_accept_language_code(lang_code: str) -> Optional[str]:
     if not lang_code:
         return None
 
+    lang_code = lang_code.strip()
+    if not lang_code:
+        return None
+
     lang_code = lang_code.lower()
 
-    # 映射常见的Accept-Language代码到我们支持的语言
+    # 映射常见的Accept-Language代码到我们支持的2字符语言
     language_mapping = {
-        "zh-cn": "zh_CN",
-        "zh": "zh_CN",
-        "en-us": "en_US",
-        "en": "en_US",
+        "zh-cn": "zh",
+        "zh": "zh",
+        "en-us": "en",
+        "en": "en",
     }
 
-    # 处理特殊情况
+    # 处理特殊情况 - 映射到2字符代码
     if lang_code.startswith("zh"):
-        return "zh_CN"
+        return "zh"
     elif lang_code.startswith("en"):
-        return "en_US"
+        return "en"
 
     # 尝试直接映射
     return language_mapping.get(lang_code)
