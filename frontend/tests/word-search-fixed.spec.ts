@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('单词查询功能测试', () => {
+test.describe('修复后的搜索功能测试', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('http://localhost:3002');
   });
 
   test('页面加载正常', async ({ page }) => {

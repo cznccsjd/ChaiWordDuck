@@ -1,0 +1,28 @@
+{
+  "name": "chaiword-duck-mcp",
+  "version": "1.0.0",
+  "description": "MCP configuration for ChaiWord Duck project",
+  "servers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp"],
+      "cwd": "./frontend",
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "./frontend/node_modules/.playwright",
+        "PLAYWRIGHT_HEADLESS": "true"
+      }
+    }
+  },
+  "tools": {
+    "playwright": {
+      "description": "Playwright browser automation tools for testing",
+      "enabled": true,
+      "config": {
+        "timeout": 30000,
+        "viewport": { "width": 1280, "height": 720 },
+        "screenshot": { "type": "png", "quality": 80 },
+        "video": { "enabled": true, "dir": "./test-results" }
+      }
+    }
+  }
+}
