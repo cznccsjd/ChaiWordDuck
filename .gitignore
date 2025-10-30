@@ -188,6 +188,30 @@ tmp/
 coverage/
 *.lcov
 
+# Test results and screenshots (Playwright, Cypress, etc.)
+test-results/
+playwright-report/
+test-results.xml
+junit.xml
+
+# Test screenshots and images
+**/test-results/**/*.png
+**/test-results/**/*.jpg
+**/test-results/**/*.jpeg
+**/test-results/**/*.gif
+**/test-results/**/*.webp
+**/test-results/**/*.svg
+**/test-results/**/screenshot*
+**/test-results/**/trace*
+**/test-results/**/video*
+
+# Temporary test files
+*.test.tmp
+*.test.temp
+test-temp/
+temp-test/
+frontend/test-results/
+
 # ===========================
 # Project Specific
 # ===========================
