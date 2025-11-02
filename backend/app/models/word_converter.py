@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.models.word import Word
+from app.core.config import settings
 
 
 class WordDataConverter:
@@ -225,7 +226,7 @@ class WordDataConverter:
             # 元数据
             'is_golden': False,
             'source': source,
-            'prompt_version': 'v2.0',
+            'prompt_version': settings.prompt_version,
             'is_legacy_format': False,
 
             # JSONB字段 - 确保字段不为空字典，避免插入问题

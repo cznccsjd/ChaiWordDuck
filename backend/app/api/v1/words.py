@@ -291,12 +291,13 @@ async def query_word_internal(
         upsert_service = await get_word_upsert_service(db)
 
         # 将AI响应转换为数据库格式并执行upsert
+        from app.core.config import settings
         saved_word, was_created = await upsert_service.upsert_word(
             word_text=normalized_word,
             ai_response_data=word_data.model_dump(),
             language_code=effective_language,
             source="ai",
-            prompt_version="v1.0"
+            prompt_version=settings.prompt_version
         )
 
         new_word = saved_word

@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import settings
 from sqlalchemy import select, and_, func
 
 from app.models.word import Word
@@ -29,7 +30,7 @@ class WordUpsertService:
         ai_response_data: Dict[str, Any],
         language_code: str = "zh_CN",
         source: str = "ai",
-        prompt_version: str = "v1.0"
+        prompt_version: str = None  # 将在方法内部使用配置值
     ) -> Tuple[Word, bool]:
         """
         智能插入或更新单词数据
@@ -49,9 +50,13 @@ class WordUpsertService:
         2. 存在 → 智能合并更新
         3. 不存在 → 创建新记录
         """
+        # 如果未提供prompt_version，使用配置中的默认值
+        if prompt_version is None:
+            prompt_version = settings.prompt_version
+
         log_with_context(
             logger, "info", "Starting word upsert operation",
-            word=word_text, language=language_code, source=source
+            word=word_text, language=language_code, source=source, prompt_version=prompt_version
         )
 
         # 1. 查找现有记录
@@ -72,17 +77,17 @@ class WordUpsertService:
             return updated_word, False
         else:
             # 3. 创建新记录
-            new_word = await self._create_new_word(
+            created_word = await self._create_new_word(
                 word_text, ai_response_data, language_code, source, prompt_version
             )
 
             log_with_context(
                 logger, "info", "New word created",
                 word=word_text, language=language_code,
-                word_id=new_word.id
+                word_id=created_word.id
             )
 
-            return new_word, True
+            return created_word, True
 
     async def _find_existing_word(
         self, word_text: str, language_code: str

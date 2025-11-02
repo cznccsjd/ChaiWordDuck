@@ -196,6 +196,9 @@ class Settings(BaseSettings):
         description="允许的图片格式（逗号分隔）"
     )
 
+    # Prompt版本配置
+    prompt_version: str = Field(default="v2.0", description="当前prompt版本号")
+
     # 其他配置
     timezone: str = Field(default="Asia/Shanghai", description="时区")
 
