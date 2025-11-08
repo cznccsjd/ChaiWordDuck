@@ -51,10 +51,14 @@ class WordDataConverter:
         if len(language_code) == 2 and language_code.islower():
             return language_code
 
-        # 映射常见的5字符代码到2字符代码
+        # 特殊处理：zh_TW 作为繁体中文代码，保持不变
+        if language_code == 'zh_TW':
+            return 'zh_TW'
+
+        # 映射常见的5字符代码到标准格式
         language_mapping = {
             'zh_cn': 'zh',
-            'zh-tw': 'zh',
+            'zh-cn': 'zh_TW',  # 处理 zh-cn (繁体中文)
             'en_us': 'en',
             'en-gb': 'en',
         }
@@ -67,10 +71,6 @@ class WordDataConverter:
         # 处理特殊情况
         if language_code.startswith('zh'):
             return 'zh'
-        elif language_code.startswith('en'):
-            return 'en'
-
-        # 默认返回英文
         return 'en'
 
     @classmethod
