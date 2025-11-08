@@ -59,6 +59,10 @@ class ImageGenerationResponse(BaseModel):
     model_used: Optional[str] = None
     error: Optional[str] = None
 
+    model_config = {
+        'protected_namespaces': ()  # 允许model_开头的字段名
+    }
+
 
 class BatchImageGenerationResponse(BaseModel):
     success_count: int

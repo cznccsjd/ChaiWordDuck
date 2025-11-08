@@ -214,7 +214,7 @@ class WordByIdResponse(BaseModel):
 
     # 元数据
     is_golden: bool = Field(..., description="是否黄金手册", alias="isGolden")
-    prompt_version: Optional[str] = Field(None, description="Prompt版本号", alias="promptVersion")
+    prompt_version: str = Field(..., description="Prompt版本号", alias="promptVersion")
 
     # 时间戳
     created_at: datetime = Field(..., description="创建时间", alias="createdAt")

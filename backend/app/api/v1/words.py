@@ -251,7 +251,7 @@ async def query_word_internal(
             common_mistakes=common_mistakes,  # 使用处理后的值
             memory_trick=word_dict["memory_trick"],
             is_golden=word_dict["is_golden"],
-            prompt_version=word_dict.get("prompt_version", "v1.0"),  # 新增字段，提供默认值
+            prompt_version=word_dict.get("prompt_version", "v1.0"),  # 关键：添加prompt版本字段
             remaining_queries=remaining_queries,
         )
 
@@ -350,7 +350,7 @@ async def query_word_internal(
             common_mistakes=common_mistakes,  # 使用处理后的值
             memory_trick=word_dict["memory_trick"],
             is_golden=word_dict["is_golden"],
-            prompt_version=word_dict.get("prompt_version", "v1.0"),  # 新增字段，提供默认值
+            prompt_version=word_dict.get("prompt_version", "v1.0"),  # 关键：添加prompt版本字段
             remaining_queries=remaining_queries,
         )
 
@@ -611,7 +611,7 @@ async def get_word_by_id(
         common_mistakes=word.common_mistakes,
         memory_trick=word.memory_trick,
         is_golden=word.is_golden,
-        prompt_version=getattr(word, 'prompt_version', None),  # 新增字段，安全访问
+        prompt_version=getattr(word, 'prompt_version', 'v1.0'),  # 关键：添加prompt版本字段
         created_at=word.created_at,
     )
 
