@@ -208,7 +208,7 @@ class WordMigrationService:
         translation = golden_translations.get(word.word)
         if translation:
             word.translation = translation
-            word.language_code = 'zh_CN'
+            word.language_code = 'zh'
             logger.info(f"Set translation for golden word {word.word}: {translation}")
 
     def validate_migration_integrity(self) -> Dict[str, Any]:

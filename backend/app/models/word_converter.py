@@ -55,12 +55,17 @@ class WordDataConverter:
         if language_code == 'zh_TW':
             return 'zh_TW'
 
-        # 映射常见的5字符代码到标准格式
+        # 映射常见的5字符代码到数据库支持的标准格式
         language_mapping = {
             'zh_cn': 'zh',
-            'zh-cn': 'zh_TW',  # 处理 zh-cn (繁体中文)
+            'zh-cn': 'zh',  # 处理 zh-cn (简体中文)
+            'zh_tw': 'zh_TW',
+            'zh-tw': 'zh_TW',  # 处理 zh-tw (繁体中文)
             'en_us': 'en',
             'en-gb': 'en',
+            'en_uk': 'en',
+            'zh-hans': 'zh',  # 简体中文
+            'zh-hant': 'zh_TW',  # 繁体中文
         }
 
         # 处理不同格式

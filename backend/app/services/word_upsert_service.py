@@ -28,7 +28,7 @@ class WordUpsertService:
         self,
         word_text: str,
         ai_response_data: Dict[str, Any],
-        language_code: str = "zh_CN",
+        language_code: str = "zh",
         source: str = "ai",
         prompt_version: str = None  # 将在方法内部使用配置值
     ) -> Tuple[Word, bool]:
@@ -185,9 +185,12 @@ class WordUpsertService:
         )
 
         # 设置基本字段
+        # 使用转换后的语言代码，确保符合数据库约束
+        db_language_code = WordDataConverter.normalize_language_code(language_code)
+
         word_data.update({
             "word": word_text,
-            "language_code": language_code,
+            "language_code": db_language_code,
             "source": source,
             "prompt_version": prompt_version,
             "created_at": datetime.utcnow(),
