@@ -1,0 +1,28 @@
+# Railway平台配置文件
+# 明确定义Redis和PostgreSQL服务
+
+[api]
+source = "."
+buildCommand = "cd backend && pdm install && cd .."
+startCommand = "cd backend && pdm run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+environment = ["PORT=8000"]
+
+[api.environmentVariables]
+DATABASE_URL = "${{postgres.DATABASE_URL}}"
+REDIS_URL = "${{redis.REDIS_URL}}"
+
+# PostgreSQL数据库服务
+[postgres]
+image = "postgres:15-alpine"
+
+[postgres.environmentVariables]
+POSTGRES_USER = "postgres"
+POSTGRES_PASSWORD = "password"
+POSTGRES_DB = "chaiword_duck"
+
+# Redis缓存服务
+[redis]
+image = "redis:7-alpine"
+
+[redis.environmentVariables]
+REDIS_PASSWORD = ""

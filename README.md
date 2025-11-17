@@ -212,6 +212,39 @@ docker-compose exec backend pdm run alembic upgrade head
 # API文档: http://localhost:8000/docs
 ```
 
+### 🚄 Railway云平台部署
+
+使用Railway平台快速部署到云端：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/cznccsjd/ChaiWordDuck.git
+cd ChaiWordDuck
+
+# 2. 验证配置
+python scripts/validate-railway-config.py
+
+# 3. 安装Railway CLI
+npm install -g @railway/cli
+
+# 4. 登录Railway
+railway login
+
+# 5. 使用自动化部署脚本
+chmod +x scripts/railway-deploy.sh
+./scripts/railway-deploy.sh
+
+# 6. 或手动部署
+railway up
+```
+
+**⚠️ 重要提醒**：
+- 确保Redis服务名称包含`redis`关键词
+- 确保PostgreSQL服务名称包含`postgres`关键词
+- 如果Redis服务被错误识别为PostgreSQL，请重新创建服务
+
+详细部署指南：[RAILWAY_DEPLOYMENT_GUIDE.md](./docs/RAILWAY_DEPLOYMENT_GUIDE.md)
+
 ### 🛠️ 开发环境设置
 
 #### 前端开发

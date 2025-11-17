@@ -281,3 +281,12 @@ nul
 *QUICK_TEST_COMMANDS.md
 test_logging.bat
 test_logging.sh
+
+# ===========================
+# Railway Platform Specific
+# ===========================
+# Railway service credentials (if any)
+railway-credentials.json
+.railway/
+# Railway generated temporary files
+railway-tmp-*
