@@ -2,7 +2,7 @@
 # Explicitly define the environment to avoid PDM detection and ensure Python 3 is available
 
 [phases.setup]
-nixPkgs = ["python3", "postgresql", "gcc"]
+nixPkgs = ["python3", "python3Packages.pip", "postgresql", "gcc"]
 
 [phases.install]
 dependsOn = ["setup"]
