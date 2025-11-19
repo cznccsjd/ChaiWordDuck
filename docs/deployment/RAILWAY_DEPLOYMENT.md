@@ -93,28 +93,6 @@ CORS_ALLOW_CREDENTIALS=true
 3. 启动时自动运行数据库迁移
 4. 验证服务健康状态
 
-## 🔍 验证部署
-
-### 1. 健康检查
-访问以下端点验证服务状态：
-```bash
-# 基础健康检查
-GET https://your-app.railway.app/health
-
-# 详细健康检查
-GET https://your-app.railway.app/health/detailed
-
-# API文档
-GET https://your-app.railway.app/docs
-```
-
-### 2. 数据库验证
-```bash
-# 检查数据库连接
-GET https://your-app.railway.app/api/v1/health/database
-
-# 验证迁移状态
-# 检查words表是否包含新字段
 ```
 
 ### 3. 功能测试
