@@ -1,0 +1,35 @@
+{
+    "$schema": "https://railway.app/railway.schema.json",
+    "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "backend/Dockerfile"
+    },
+    "services": {
+        "api": {
+            "source": "backend",
+            "build": {
+                "builder": "DOCKERFILE",
+                "dockerfilePath": "Dockerfile"
+            },
+            "environment": {
+                "PORT": "8000",
+                "DATABASE_URL": "${{postgres.DATABASE_URL}}",
+                "REDIS_URL": "${{redis.REDIS_URL}}"
+            }
+        },
+        "postgres": {
+            "image": "postgres:15-alpine",
+            "environment": {
+                "POSTGRES_USER": "postgres",
+                "POSTGRES_PASSWORD": "password",
+                "POSTGRES_DB": "chaiword_duck"
+            }
+        },
+        "redis": {
+            "image": "redis:7-alpine",
+            "environment": {
+                "REDIS_PASSWORD": ""
+            }
+        }
+    }
+}

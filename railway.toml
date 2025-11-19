@@ -2,28 +2,22 @@
 # 明确定义Redis和PostgreSQL服务
 
 [build]
-builder = "NIXPACKS"
+builder = "DOCKERFILE"
 
 [deploy]
-startCommand = "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+# startCommand is commented out to use Dockerfile's CMD
+# startCommand = "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [api]
-# source = "backend" (Removed to use root context)
+source = "backend"
 environment = ["PORT=8000"]
 
 [api.environmentVariables]
 APP_NAME = "ChaiWord Duck API"
 APP_ENV = "production"
 DEBUG = "false"
-# Force Nixpacks configuration via Environment Variables (Overrides auto-detection)
-NIXPACKS_PKGS = "python3 postgresql gcc curl"
-NIXPACKS_INSTALL_CMD = "python3 -m venv /app/.venv && . /app/.venv/bin/activate && (python3 -m ensurepip || curl https://bootstrap.pypa.io/get-pip.py | python3) && python3 -m pip install --default-timeout=1000 --no-cache-dir -r backend/requirements-railway.txt"
-NIXPACKS_START_CMD = ". /app/.venv/bin/activate && cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-# Explicitly disable other providers
-NIXPACKS_POETRY_VERSION = "0"
-NIXPACKS_PDM_VERSION = "0"
 DATABASE_URL = "${{postgres.DATABASE_URL}}"
 REDIS_URL = "${{redis.REDIS_URL}}"
 
