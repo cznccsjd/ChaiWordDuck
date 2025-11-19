@@ -1,4 +1,4 @@
-# Nixpacks configuration file
+# Nixpacks configuration file (Root Level)
 # Explicitly define the environment to avoid PDM detection and ensure Python 3 is available
 
 [phases.setup]
@@ -6,7 +6,7 @@ nixPkgs = ["python3", "postgresql", "gcc", "musl-dev"]
 
 [phases.install]
 dependsOn = ["setup"]
-cmds = ["python3 -m pip install -r requirements-railway.txt"]
+cmds = ["python3 -m pip install -r backend/requirements-railway.txt"]
 
 [start]
-cmd = "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+cmd = "cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"

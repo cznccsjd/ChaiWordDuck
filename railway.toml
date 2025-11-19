@@ -10,7 +10,7 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [api]
-source = "backend"
+# source = "backend" (Removed to use root context)
 environment = ["PORT=8000"]
 
 [api.environmentVariables]
