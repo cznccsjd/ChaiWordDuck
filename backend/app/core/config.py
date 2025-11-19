@@ -40,6 +40,19 @@ class Settings(BaseSettings):
     database_max_overflow: int = Field(default=10, description="数据库连接池最大溢出")
     database_echo: bool = Field(default=False, description="是否打印SQL语句")
 
+    @field_validator("database_url")
+    @classmethod
+    def assemble_db_connection(cls, v: str) -> str:
+        """
+        验证并修正数据库连接URL
+        
+        Railway提供的DATABASE_URL通常是 postgresql:// 开头
+        但是我们需要 postgresql+asyncpg:// 来使用异步驱动
+        """
+        if v and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     # Redis配置
     redis_url: str = Field(default="redis://localhost:6379/0", description="Redis连接URL")
     redis_password: str = Field(default="", description="Redis密码")
