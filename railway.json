@@ -6,10 +6,10 @@
   },
   "services": {
     "api": {
-      "source": ".",
+      "source": "backend",
       "build": {
         "builder": "DOCKERFILE",
-        "dockerfilePath": "backend/Dockerfile"
+        "dockerfilePath": "Dockerfile"
       },
       "environment": {
         "PORT": "8000",

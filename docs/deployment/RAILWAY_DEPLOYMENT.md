@@ -18,21 +18,6 @@
 - 支持PostgreSQL数据库
 - 支持Redis缓存（可选）
 
-## ⚙️ Railway配置
-
-### 1. 项目设置
-```json
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "backend/Dockerfile"
-  }
-}
-```
-
-### 2. 必需环境变量
-
 #### 核心配置
 ```bash
 # 应用配置
@@ -111,20 +96,6 @@ Railway自动创建PostgreSQL数据库，连接URL通过`${{RAILWAY_DATABASE_URL
 
 ### 1. 创建Railway项目
 1. 登录Railway控制台
-2. 点击"New Project"
-3. 连接GitHub仓库
-4. 选择develop分支
-
-### 2. 配置服务
-1. Service Type: Dockerfile
-2. Root Directory: backend
-3. Dockerfile路径: backend/Dockerfile
-4. Port: 8000
-
-### 3. 设置环境变量
-在Railway控制台中添加上述所有必需的环境变量。
-
-### 4. 添加数据库
 1. 点击"New Service"
 2. 选择"PostgreSQL"
 3. 数据库会自动连接到主应用

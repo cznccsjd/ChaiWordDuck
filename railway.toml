@@ -2,9 +2,9 @@
 # 明确定义Redis和PostgreSQL服务
 
 [api]
-source = "."
-buildCommand = "cd backend && pdm install && cd .."
-startCommand = "cd backend && pdm run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+source = "backend"
+# buildCommand is handled by Dockerfile
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 environment = ["PORT=8000"]
 
 [api.environmentVariables]
