@@ -482,7 +482,18 @@ ChaiWordDuck/
 
 ## 📁 项目文档
 
-### 产品文档
+### 📚 核心文档
+- [产品需求文档 (PRD)](./docs/product/PRD.md)
+- [技术架构文档](./docs/architecture/ARCHITECTURE.md)
+- [API文档](./docs/architecture/API.md)
+- [设计文档](./docs/architecture/DESIGN.md)
+
+### 🛠️ 部署与运维
+- [部署指南](./docs/deployment/DEPLOYMENT.md)
+- [Railway部署指南](./docs/deployment/RAILWAY_DEPLOYMENT.md)
+- [Docker故障排除](./docs/deployment/DOCKER_TROUBLESHOOTING.md)
+
+### 📊 报告与分析
 - [产品可行性分析](./docs/product/01-产品可行性分析.md)
 - [品牌命名策略分析](./docs/product/02-品牌命名策略分析.md)
 - [市场调研报告](./docs/product/全球成人英語學習平台與長單詞記憶產品市場調研報告.md)
