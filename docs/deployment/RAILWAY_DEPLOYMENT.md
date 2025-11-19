@@ -71,19 +71,6 @@ CORS_ORIGINS=https://your-frontend-domain.com,https://your-domain.com
 CORS_ALLOW_CREDENTIALS=true
 
 # 限流配置
-RATE_LIMIT_PER_MINUTE=30
-RATE_LIMIT_PER_HOUR=1000
-```
-
-## 🗄️ 数据库设置
-
-### 1. PostgreSQL数据库
-Railway自动创建PostgreSQL数据库，连接URL通过`${{RAILWAY_DATABASE_URL}}`环境变量提供。
-
-### 2. 数据库迁移
-应用启动时自动运行Alembic迁移：
-- 自动执行`alembic upgrade head`
-- 迁移包括多语言支持和JSONB字段
 - 自动创建必要的索引和约束
 
 ### 3. 迁移内容
