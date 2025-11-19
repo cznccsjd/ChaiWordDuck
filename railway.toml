@@ -14,6 +14,12 @@ source = "backend"
 environment = ["PORT=8000"]
 
 [api.environmentVariables]
+APP_NAME = "ChaiWord Duck API"
+APP_ENV = "production"
+DEBUG = "false"
+# Force Nixpacks configuration
+NIXPACKS_PKGS = "python311 postgresql gcc"
+NIXPACKS_INSTALL_CMD = "python3 -m pip install -r requirements-railway.txt"
 DATABASE_URL = "${{postgres.DATABASE_URL}}"
 REDIS_URL = "${{redis.REDIS_URL}}"
 
