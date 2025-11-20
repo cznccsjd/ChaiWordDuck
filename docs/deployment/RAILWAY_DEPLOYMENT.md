@@ -1,182 +1,100 @@
-# 拆词鸭 Railway 部署指南
+# 拆词鸭 (ChaiWord Duck) Railway 部署指南 🚀
 
-## 🚀 部署概述
+这份指南旨在帮助开发者以最"丝滑"的方式，将拆词鸭后端 API 部署到 Railway 平台。我们采用 **Docker** 方案，确保环境的一致性和部署的稳定性。
 
-本指南详细说明如何将拆词鸭后端API部署到Railway平台。
+## 📋 核心架构
 
-## 📋 部署前准备
-
-### 1. 代码准备
-- ✅ develop分支已推送到远程
-- ✅ requirements-railway.txt已生成（仅生产依赖）
-- ✅ Dockerfile已优化支持Railway
-- ✅ railway.json配置为DOCKERFILE模式
-- ✅ 数据库迁移脚本已准备
-
-### 2. Railway账户准备
-- Railway账户已创建
-- 支持PostgreSQL数据库
-- 支持Redis缓存（可选）
-
-#### 核心配置
-```bash
-# 应用配置
-APP_NAME=ChaiWord Duck API
-APP_ENV=production
-DEBUG=false
-
-# 数据库配置（Railway自动提供）
-DATABASE_URL=${{RAILWAY_DATABASE_URL}}
-
-# JWT配置
-JWT_SECRET_KEY=your-production-secret-key-min-32-chars
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=10080
-```
-
-#### AI服务配置
-```bash
-# 主AI服务配置
-AI_PRIMARY_PROVIDER=gemini
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-1.5-flash
-GEMINI_TIMEOUT=30
-
-# 备用AI服务配置
-AI_FALLBACK_PROVIDER=openai
-OPENAI_API_KEY=sk-your-openai-api-key
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_TIMEOUT=30
-```
-
-#### 业务配置
-```bash
-# 用户限制
-GUEST_AI_GENERATION_LIMIT=5
-FREE_USER_AI_GENERATION_LIMIT=20
-PREMIUM_USER_AI_GENERATION_LIMIT=-1
-
-GUEST_DAILY_LIMIT=10
-FREE_USER_DAILY_LIMIT=50
-PREMIUM_USER_DAILY_LIMIT=-1
-
-FREE_USER_FAVORITE_LIMIT=10
-PREMIUM_USER_FAVORITE_LIMIT=999999
-```
-
-#### 安全配置
-```bash
-# CORS配置（替换为实际域名）
-CORS_ORIGINS=https://your-frontend-domain.com,https://your-domain.com
-CORS_ALLOW_CREDENTIALS=true
-
-# 限流配置
-- 自动创建必要的索引和约束
-
-### 3. 迁移内容
-- 多语言支持字段（language_code, translation）
-- JSONB结构化数据字段
-- 用户语言偏好设置
-- 优化索引和唯一约束
-
-## 🚢 部署步骤
-
-### 1. 创建Railway项目
-1. 登录Railway控制台
-1. 点击"New Service"
-2. 选择"PostgreSQL"
-3. 数据库会自动连接到主应用
-
-### 5. 部署
-1. 点击"Deploy"按钮
-2. Railway会自动构建Docker镜像
-3. 启动时自动运行数据库迁移
-4. 验证服务健康状态
-
-```
-
-### 3. 功能测试
-```bash
-# 测试单词查询（支持多语言）
-GET https://your-app.railway.app/api/v1/words/accommodation?language=zh_CN
-
-# 测试AI生成功能
-POST https://your-app.railway.app/api/v1/words/generate
-```
-
-## 🚨 故障排除
-
-### 常见问题
-
-#### 1. 数据库连接失败
-```bash
-# 检查DATABASE_URL环境变量
-echo $DATABASE_URL
-
-# 验证数据库连接状态
-curl https://your-app.railway.app/api/v1/health/database
-```
-
-#### 2. AI服务配置错误
-```bash
-# 检查API密钥配置
-curl https://your-app.railway.app/api/v1/health/ai-service
-
-# 查看AI服务状态
-```
-
-#### 3. 迁移失败
-检查Railway部署日志，查找迁移错误信息。
-
-#### 4. 内存不足
-在Railway控制台中增加服务内存配置。
-
-### 日志查看
-在Railway控制台中查看实时日志：
-- 应用启动日志
-- 数据库迁移日志
-- API请求日志
-- 错误日志
-
-## 📈 监控和维护
-
-### 1. 性能监控
-- Railway提供基础监控指标
-- 可集成第三方监控服务（如Sentry）
-
-### 2. 数据库备份
-Railway自动进行PostgreSQL备份。
-
-### 3. 更新部署
-- 推送代码到develop分支
-- Railway自动触发重新部署
-- 数据库迁移自动执行
-
-## 🎯 生产环境优化建议
-
-### 1. 性能优化
-- 启用Redis缓存（添加Redis服务）
-- 配置CDN加速静态资源
-- 优化数据库查询
-
-### 2. 安全配置
-- 使用强密码和JWT密钥
-- 配置HTTPS（Railway自动提供）
-- 限制CORS源
-
-### 3. 成本控制
-- 监控API使用量
-- 设置适当的用户限制
-- 优化AI服务调用
-
-## 📞 支持
-
-如遇到部署问题：
-1. 检查Railway部署日志
-2. 验证环境变量配置
-3. 确认数据库连接
-4. 联系开发团队
+*   **构建方式**: Dockerfile (基于 `python:3.11-slim-bullseye`)
+*   **数据库**: PostgreSQL (Railway 自动提供)
+*   **缓存**: Redis (Railway 自动提供)
+*   **依赖管理**: `requirements-railway.txt` (仅包含生产环境依赖)
 
 ---
 
-**部署完成后，请更新前端API配置以指向新的Railway URL。**
+## 🛠️ 部署前检查清单
+
+在开始之前，请确保你的代码库已经准备就绪：
+
+1.  **代码同步**: 确保本地代码已推送到 GitHub 的 `develop` 或 `main` 分支。
+2.  **关键文件确认**:
+    *   ✅ `railway.json`: 定义了服务结构和构建源。
+    *   ✅ `railway.toml`: 配置了构建器为 `DOCKERFILE`。
+    *   ✅ `backend/Dockerfile`: 包含了构建和启动逻辑。
+    *   ✅ `backend/requirements-railway.txt`: 锁定了生产环境依赖。
+
+---
+
+## 🚢 极速部署步骤 (3分钟搞定)
+
+### 第一步：连接 GitHub
+
+1.  登录 [Railway 控制台](https://railway.app/)。
+2.  点击 **"New Project"** -> **"Deploy from GitHub repo"**。
+3.  选择 **`ChaiWordDuck`** 仓库。
+4.  点击 **"Deploy Now"**。
+
+### 第二步：添加数据库和缓存
+
+Railway 会自动解析 `railway.json`，但为了确保万无一失，请检查服务视图：
+
+1.  你应该能看到 **`postgres`** 和 **`redis`** 服务自动被创建（如果没有，请手动添加 Database -> PostgreSQL 和 Database -> Redis）。
+2.  **关键**: 确保 API 服务连接到了这两个数据库。Railway 的变量注入通常是自动的，但我们需要手动确认环境变量。
+
+### 第三步：配置环境变量 (关键!)
+
+进入 API 服务的 **"Variables"** 选项卡，添加以下必须的变量：
+
+| 变量名 | 示例值/说明 |
+| :--- | :--- |
+| `APP_ENV` | `production` |
+| `DEBUG` | `false` |
+| `JWT_SECRET_KEY` | 生成一个长随机字符串 (至少32位) |
+| `AI_PRIMARY_PROVIDER` | `gemini` 或 `openai` |
+| `GEMINI_API_KEY` | 你的 Google Gemini API Key |
+| `OPENAI_API_KEY` | 你的 OpenAI API Key (如果用作备用) |
+| `CORS_ORIGINS` | `https://your-frontend.vercel.app` (前端域名) |
+
+> **注意**: `DATABASE_URL`, `REDIS_URL`, `PORT` 这些变量 Railway 会自动注入，**不需要**手动添加。
+
+### 第四步：坐等变绿 🟢
+
+1.  配置完变量后，Railway 会自动触发重新部署。
+2.  点击 API 服务的 **"Deployments"** 标签，观察构建日志。
+3.  看到 `Starting FastAPI server...` 字样，说明部署成功！
+
+---
+
+## 🔍 验证部署
+
+部署成功后，Railway 会提供一个公网域名（例如 `chaiword-duck-production.up.railway.app`）。
+
+1.  **健康检查**:
+    访问 `https://<你的域名>/api/v1/health/database`
+    *   预期返回: `{"status":"healthy", ...}`
+
+2.  **API 文档**:
+    访问 `https://<你的域名>/docs`
+    *   预期看到 Swagger UI 界面。
+
+---
+
+## 🚨 常见问题急救箱
+
+**Q: 部署失败，日志显示 `alembic: command not found`?**
+A: 检查 `backend/Dockerfile` 是否正确复制了依赖，并且 `requirements-railway.txt` 中包含 `alembic`。我们的 Dockerfile 已经内置了启动脚本 `start.sh` 来处理这个问题。
+
+**Q: 数据库连接报错 `scheme not supported: postgres`?**
+A: 我们的代码 (`backend/app/core/config.py`) 已经自动处理了这个问题，会将 `postgres://` 自动替换为 `postgresql+asyncpg://`。如果仍报错，请检查 `DATABASE_URL` 变量是否被正确注入。
+
+**Q: 构建速度很慢？**
+A: Docker 构建第一次会比较慢（下载基础镜像和编译依赖），后续部署会利用缓存，速度会快很多。
+
+---
+
+## 🤝 维护指南
+
+*   **更新代码**: 只要推送到 GitHub，Railway 就会自动重新部署。
+*   **查看日志**: 在 Railway 控制台点击服务，选择 "Logs" 即可查看实时日志。
+*   **数据库管理**: Railway 提供了网页版的数据库管理工具，也可以通过 "Connect" 标签获取连接串用本地工具连接。
+
+祝你部署愉快！🦆
