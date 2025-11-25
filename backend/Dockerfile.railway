@@ -1,0 +1,68 @@
+# ----------------------------------------------------
+# Railway平台优化版 Dockerfile - 专为拆词鸭项目设计
+# 解决pip安装超时和编译问题
+# ----------------------------------------------------
+
+# 使用官方Python 3.12.8镜像（带最新编译工具）
+FROM python:3.12.8-slim-bullseye
+
+# 设置构建时环境变量
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=1000 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# 1. 安装系统依赖和Rust工具链（用于编译pydantic-core）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    # Rust工具链 - 用于编译pydantic-core
+    rustc \
+    cargo \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置工作目录
+WORKDIR /app
+
+# 2. 首先安装pydantic-core（减少并发编译冲突）
+# 使用预编译wheel避免在Railway上编译
+RUN pip install --no-build-isolation \
+    "pydantic-core==2.20.1" && \
+    pip install --no-build-isolation \
+    "pydantic==2.9.2"
+
+# 3. 复制requirements文件并分阶段安装依赖
+# 先安装核心依赖（通常较大，容易超时）
+COPY requirements-core.txt ./requirements-core.txt
+RUN pip install --no-build-isolation -r requirements-core.txt
+
+# 再安装其他依赖
+COPY requirements-extra.txt ./requirements-extra.txt
+RUN pip install --no-build-isolation -r requirements-extra.txt
+
+# 4. 复制应用代码
+COPY . .
+
+# 5. 创建启动脚本（包含健康检查和重试机制）
+RUN echo '#!/bin/sh\n\
+set -e\n\
+echo "=== 拆词鸭后端服务启动 ==="\n\
+echo "等待数据库连接..."\n\
+# 等待PostgreSQL就绪\n\
+timeout 30 sh -c "until nc -z postgres 5432; do sleep 1; done" || echo "数据库连接超时，继续启动..."\n\
+echo "运行数据库迁移..."\n\
+alembic upgrade head || echo "数据库迁移失败，检查配置..."\n\
+echo "启动FastAPI服务器..."\n\
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# 6. 健康检查
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:$PORT/health || exit 1
+
+# 7. 暴露端口和启动命令
+EXPOSE 8000
+CMD ["/bin/sh", "-c", "exec /app/start.sh"]
