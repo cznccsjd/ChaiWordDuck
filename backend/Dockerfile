@@ -2,7 +2,7 @@
 # 修正后的 Backend Dockerfile (解决所有构建和启动问题)
 # ----------------------------------------------------
 # 使用基于 Debian 的镜像
-FROM python:3.11-slim-bullseye
+FROM python:3.12.8-slim-bullseye
 
 # 1. 安装构建工具和系统依赖
 # build-essential 用于编译 pydantic-core 等 C 扩展
